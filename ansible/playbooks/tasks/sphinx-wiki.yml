@@ -1,0 +1,68 @@
+# Sphinx Documentation setup
+
+- name: "Sphinx documentation | remove old wiki"
+  ansible.builtin.shell: rm -rf {{ documentationDir }}/wiki 
+
+- name: "Sphinx documentation | create wiki directory"
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: 0775
+  loop:
+    - "{{ documentationDir }}/wiki"
+
+- name: "Sphinx documentation | create sphinx virtualenv"
+  become_user: "{{ user }}"
+  ansible.builtin.shell: cd {{ documentationDir }}/wiki; python3 -m venv __env__; 
+
+- name: "Sphinx documentation | setup sphinx and extensions"
+  become_user: "{{ user }}"
+  ansible.builtin.pip:
+    name: 
+      - sphinx
+      - myst-parser
+    virtualenv: "{{ documentationDir }}/wiki/__env__"
+
+- name: "Sphinx documentation | setup sphinx-themes"
+  become_user: "{{ user }}"
+  ansible.builtin.pip:
+    name: 
+      - furo
+      - sphinx-rtd-theme
+    virtualenv: "{{ documentationDir }}/wiki/__env__"
+
+- name: "Sphinx documentation | create sphinx project"
+  become_user: "{{ user }}"
+  ansible.builtin.shell: cd {{ documentationDir }}/wiki && . __env__/bin/activate && sphinx-quickstart -q --sep -p "wiki" -a "kidrek" -v 0.1 --ext-autodoc;
+
+- name: "Sphinx documentation | set the new theme"
+  become_user: "{{ user }}"
+  lineinfile:
+    dest: "{{ documentationDir }}/wiki/source/conf.py"
+    create: yes
+    mode: 0644
+    line: "html_theme = 'sphinx_rtd_theme'"
+    regexp: "^html_theme ="
+
+- name: "Sphinx documentation | add extensions in configuration file"
+  become_user: "{{ user }}"
+  lineinfile:
+    path: "{{ documentationDir }}/wiki/source/conf.py"
+    regexp: '^    "{{ item.name }}",'
+    insertafter: '^extensions = \['
+    line: '    "{{ item.name }}",'
+  with_items:
+    - { name: "myst_parser" }
+
+- name: "Sphinx documentation | copy wiki pages"
+  copy: 
+    src: ../files/wiki/
+    dest: "{{ documentationDir }}/wiki/source/"
+    owner: "{{ user }}" 
+    group: "{{ user }}" 
+
+- name: "Sphinx documentation | generate html wiki"
+  become_user: "{{ user }}"
+  shell: "cd {{ documentationDir }}/wiki && . __env__/bin/activate && make html"

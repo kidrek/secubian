@@ -1,0 +1,61 @@
+
+
+- name: "IRIS Web | Clone git repos"
+  become_user: "{{ user }}"
+  git:
+    repo: "{{ item.repo }}"
+    dest: "{{ item.dest }}"
+    accept_hostkey: yes
+    force: yes
+    recursive: yes
+  with_items:
+    - { repo: "https://github.com/dfir-iris/iris-web.git", dest: "{{ DFIR_toolsDir }}/iris-web" }
+
+- name: "IRIS Web | Create configuration"
+  become_user: "{{ user }}"
+  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/iris-web; git checkout v2.0.0-beta-1; cp .env.model .env;
+
+- name: "IRIS Web | Set Administrator password"
+  become_user: "{{ user }}"
+  lineinfile:
+    dest: "{{ DFIR_toolsDir }}/iris-web/.env"
+    create: yes
+    mode: 0644
+    line: 'IRIS_ADM_PASSWORD=administrator'
+    regexp: "^IRIS_ADM_PASSWORD="
+
+- name: "IRIS Web | Build Docker"
+  become_user: "{{ user }}"
+  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/iris-web; git checkout v2.0.0-beta-1; sudo service docker restart; sudo docker-compose build;
+
+- name: "IRIS Web | Add BASH aliases"
+  become_user: "{{ user }}"
+  lineinfile:
+    dest: "~/.bash_aliases"
+    create: yes
+    mode: 0644
+    line: 'alias iris-web="cd {{ DFIR_toolsDir }}/iris-web; git checkout v2.0.0-beta-1; sudo docker-compose up"'
+    regexp: "^alias iris-web="
+
+# Download template
+# https://docs.dfir-iris.org/operations/example_reports/iris_report_template.docx
+# https://docs.dfir-iris.org/operations/example_reports/iris_activity_report_template.docx
+- name: "IRIS Web | Create reports folder"
+  become_user: "{{ user }}"
+  file:
+    path: "{{ DFIR_toolsDir }}/iris-web/reports"
+    state: directory
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: '0775'
+    
+- name: "IRIS Web | Download reports templates"
+  ansible.builtin.get_url:
+    url: "{{ item.url }}"
+    dest: "{{ DFIR_toolsDir }}/iris-web/reports/{{ item.filename }}"
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: '0440'
+  with_items:
+    - { url: "https://docs.dfir-iris.org/operations/example_reports/iris_report_template.docx", filename: "iris_report_template.docx" }
+    - { url: "https://docs.dfir-iris.org/operations/example_reports/iris_activity_report_template.docx", filename: "iris_activity_report_template.docx" }

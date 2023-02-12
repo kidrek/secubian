@@ -1,0 +1,28 @@
+
+
+- name: "FLARE CAPA | Install python3 module"
+  ansible.builtin.pip:
+    name: 
+      - flare-capa
+    executable: pip3
+
+- name: "FLARE CAPA | Clone git CAPA rules repos"
+  become_user: "{{ user }}"
+  git:
+    repo: "{{ item.repo }}"
+    dest: "{{ item.dest }}"
+    accept_hostkey: yes
+    force: yes
+    recursive: yes
+  with_items:
+    - { repo: "https://github.com/mandiant/capa-rules.git", dest: "{{ DFIR_toolsDir }}/flare-capa-rules" }
+
+- name: "FLARE CAPA | Add BASH aliases"
+  become_user: "{{ user }}"
+  lineinfile:
+    dest: "~/.bash_aliases"
+    create: yes
+    mode: 0644
+    line: 'alias capa="capa -r {{ DFIR_toolsDir }}/flare-capa-rules"'
+    regexp: "^alias capa="
+
