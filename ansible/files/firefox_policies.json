@@ -1,0 +1,131 @@
+{
+    "policies": {
+      "DisableFeedbackCommands": true,
+      "DisableFirefoxAccounts": true,
+      "DisableFirefoxStudies": true,
+      "DisablePocket": true,
+      "DisableProfileImport": true,
+      "DisableProfileRefresh": true,
+      "DisableTelemetry": true,
+      "DisplayBookmarksToolbar": true,
+      "DisplayMenuBar": true,
+      "DontCheckDefaultBrowser": true,
+      "EnableTrackingProtection": {
+        "Cryptomining": true,
+        "Fingerprinting": true,
+        "Value": true
+      },
+      "ManagedBookmarks": [
+        {
+          "toplevel_name": "Secubian Bookmarks"
+        },
+        {
+          "name": "Documentation - Secubian",
+          "url": "file:///home/{{ user }}/Desktop/Documentation/wiki/build/html/index.html"
+        },
+        {
+          "name": "DFIR",
+          "children": [
+            {
+              "name": "Cheatsheets",
+              "children": [
+                {
+                  "url": "https://zeltser.com/cheat-sheets",
+                  "name": "Documentation - Lenny Zeltser"
+                }
+              ]
+            },
+            {
+              "name": "Outils - Online",
+              "children": [
+                {
+                  "url": "https://blog.didierstevens.com/didier-stevens-suite/",
+                  "name": "Didier Stevens tools"
+                }
+              ]
+            },
+            {
+              "name": "Outils - OnPrem'",
+              "children": [
+                {
+                  "url": "http://127.0.0.1/",
+                  "name": "Timesketch"
+                }
+              ]
+            },
+            {
+              "name": "Playbooks",
+              "children": [
+                {
+                  "url": "https://www.incidentresponse.org/playbooks/",
+                  "name": "Incident Response - Playbooks"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Pentest",
+          "children": [
+            {
+              "url": "https://mozilla.org",
+              "name": "Mozilla.org"
+            }
+          ]
+        }
+      ],
+      "// Comment - Source": "https://raw.githubusercontent.com/cryptoluks/packer-templates/4a25533546b7b9433f5d4c0f52b830d8057e856a/kali/packer/provision.sh",
+      "// Check Geko ID": "",
+      "ExtensionSettings": {
+        "{b86e4813-687a-43e6-ab65-0bde4ab75758}": {
+            "install_url": "https://addons.mozilla.org/firefox/downloads/file/4041581",
+            "installation_mode": "normal_installed"
+        },          
+        "CookieAutoDelete@kennydo.com": {
+            "install_url": "https://addons.mozilla.org/firefox/downloads/file/4040738",
+            "installation_mode": "normal_installed"
+        },  
+        "@testpilot-containers": {
+          "install_url": "https://addons.mozilla.org/firefox/downloads/file/4038684",
+          "installation_mode": "normal_installed"
+        },
+        "foxyproxy@eric.h.jung": {
+          "install_url": "https://addons.mozilla.org/firefox/downloads/file/3616824",
+          "installation_mode": "normal_installed"
+        },
+        "uBlock0@raymondhill.net": {
+          "install_url": "https://addons.mozilla.org/firefox/downloads/file/4028976",
+          "installation_mode": "normal_installed"
+        },
+        "{0b457cAA-602d-484a-8fe7-c1d894a011ba}": {
+          "install_url": "https://addons.mozilla.org/firefox/downloads/file/4053938",
+          "installation_mode": "normal_installed"
+        },
+        "{78eea43d-42ab-4410-98b9-de9d50ddb1a3}": {
+          "install_url": "https://addons.mozilla.org/firefox/downloads/file/4021835",
+          "installation_mode": "normal_installed"
+        }
+      },
+      "Homepage": {
+        "StartPage": "file:///home/{{ user }}/Desktop/Documentation/wiki/build/html/index.html"
+      },
+      "NewTabPage": false,
+      "NoDefaultBookmarks": true,
+      "OverrideFirstRunPage": "",
+      "OverridePostUpdatePage": "",
+      "Preferences": {
+        "browser.urlbar.suggest.openpage": false,
+        "extensions.getAddons.showPane": false,
+        "network.IDN_show_punycode": true,
+        "extensions.autoDisableScopes": 0,
+        "browser.contentblocking.category": "strict",
+        "privacy.annotate channels.strict_list.enabled": true,
+        "privacy.trackingprotection.enabled": true,
+        "privacy.trackingprotection.socialtracking.enabled": true,
+        "dom.security.https_only_mode": true,
+        "dom.security.https_only_mode_ever_enabled": true,
+        "network.cookie.cookieBehavior": 5
+      },
+      "SearchSuggestEnabled": false
+    }
+  }
