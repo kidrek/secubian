@@ -1,0 +1,200 @@
+---
+- name: Secubian
+  hosts: all
+  become: yes
+  
+  pre_tasks:
+    - name: update repositories
+      apt: update_cache=yes
+      changed_when: False
+
+  vars:
+      toolsDir: "/home/{{ user }}/Desktop/Tools"
+      documentationDir: "/home/{{ user }}/Desktop/Documentation"
+      DFIR_toolsDir: "{{ toolsDir }}/DFIR"
+      OSINT_toolsDir: "{{ toolsDir }}/OSINT"
+
+  tasks: 
+   #- include: tasks/requirements_packages.yml
+   #- include: tasks/python2.yml
+   - include: tasks/gnome.yml
+   #- include: tasks/vscode.yml
+   #- include: tasks/firefox.yml
+   #- include: tasks/docker.yml
+   #- include: tasks/sphinx-wiki.yml
+   ##- include: tasks/forensic/bulk_extractor.yml
+   #- include: tasks/forensic/capa.yml
+   #- include: tasks/forensic/CIRCLE_Hashlookup.yml
+   #- include: tasks/forensic/didierStevens.yml
+   #- include: tasks/forensic/IRISWeb.yml
+   #- include: tasks/forensic/timesketch.yml
+   #- include: tasks/forensic/volatility.yml
+   #- include: tasks/forensic/volatility3.yml
+   #- include: tasks/forensic/zircolite.yml
+   #- include: tasks/osint/ct-exposer.yml
+
+   - name: Install - AV Security tools
+     apt:
+       name: 
+         - clamav
+       state: present
+
+   - name: Install - Forensic Python2 modules
+     become_user: "{{ user }}"
+     ansible.builtin.pip:
+       name: 
+         - dissect
+         - evtxtract
+         - lxml
+         - officedissector
+         - peepdf
+         - pillow
+       virtualenv: "$HOME/.pyenv/versions/2.7.18"
+       virtualenv_command: $HOME/.pyenv/bin/pyenv virtualenv 2.7.18
+
+   - name: Install - Forensic Python3 modules
+     ansible.builtin.pip:
+       name: 
+         - oletools
+         - pillow
+       executable: pip3
+
+   - name: Install - Forensic Security tools
+     apt:
+       name: 
+         - binwalk
+         - chntpw
+         - dc3dd
+         - exiftool
+         - extundelete 
+         - foremost
+         - forensics-full
+         - forensics-extra
+         - gddrescue
+         - hexedit
+         - libevtx-utils
+         - libewf-dev
+         - libguestfs-tools
+         - libvshadow-utils
+         - python3-ssdeep
+         - scalpel
+         - sleuthkit
+         - sqlitebrowser
+         - testdisk
+       state: present
+
+   - name: "Install - Forensic Security tools (Github.com)"
+     become_user: "{{ user }}"
+     git:
+       repo: "{{ item.repo }}"
+       accept_hostkey: yes
+       dest: "{{ item.dest }}"
+       recursive: yes
+     with_items:
+       - { repo: "https://github.com/JPCERTCC/LogonTracer.git", dest: "{{ DFIR_toolsDir }}/LogonTracer" }
+       - { repo: "https://github.com/countercept/chainsaw.git", dest: "{{ DFIR_toolsDir }}/chainsaw" }
+
+
+   - name: Install - Network Python3 modules
+     ansible.builtin.pip:
+       name: 
+         - scapy
+         - setuptools
+       executable: pip3
+
+
+   - name: Install - Network Security tools
+     apt:
+       name: 
+         - network-manager-openvpn-gnome
+         - nmap
+         - openvpn
+         - python3-scapy
+         - tcpdump
+         - tshark
+         - wireshark
+       state: present
+
+   - name: Install - OSINT Python modules
+     ansible.builtin.pip:
+       name: 
+         - bbot # https://github.com/blacklanternsecurity/bbot
+       executable: pip3
+
+
+   - name: Install - Pentest tools
+     apt:
+       name: 
+         - cewl
+         - ffuf
+         - fierce
+         - hashcat
+         - john
+         - macchanger
+         - nikto
+         - proxychains
+         - proxychains4
+         - socat
+         - sqlmap
+         - whatweb
+       state: present
+
+   - name: Install - Malware Analysis
+     apt:
+       name: 
+         - droidlysis
+         - strace
+       state: present
+
+   - name: Install - Malware Analysis Python3 modules
+     ansible.builtin.pip:
+       name: 
+         - quicksand            # https://github.com/tylabs/quicksand
+         - stringsifter~=2.0    # https://github.com/mandiant/stringsifter
+       executable: pip3
+
+
+   - name: create directory if they don't exist
+     file:
+       path: "{{ item }}"
+       state: directory
+       owner: "{{ user }}"
+       group: "{{ user }}"
+       mode: 0775
+     loop:
+       - "/home/{{ user }}/Desktop/cases"
+       - "{{ DFIR_toolsDir }}"
+       - "{{ OSINT_toolsDir }}"
+
+   - name: Download SANS Documentation
+     copy: src=../files/Documentation dest="/home/{{ user }}/Desktop/" owner="{{ user }}" group="{{ user }}" mode=600
+
+
+   - name: "Bash | Add aliases"
+     become_user: "{{ user }}"
+     lineinfile:
+       dest: "~/.bash_aliases"
+       create: yes
+       mode: 0644
+       line: "alias {{ item.alias }}='{{ item.commandLine }}'"
+       regexp: "^alias {{ item.alias }}="
+     with_items:
+       - { alias: "ll", commandLine: "ls -la" }
+       - { alias: "dockerplaso", commandLine: "sudo docker run --rm -v $(pwd):/data -w /data log2timeline/plaso psort"}
+       - { alias: "dockerl2t", commandLine: "sudo docker run --rm -v $(pwd):/data -w /data log2timeline/plaso log2timeline"}
+
+   - name: Docker build
+     ansible.builtin.shell: docker pull {{ item.docker }};
+     with_items:
+       - { docker: "log2timeline/plaso" }
+
+   - name: Docker disable auto start all containers
+     ansible.builtin.shell: docker update --restart=no $(docker ps -a -q);
+
+   #- name: Debian Backports upgrade
+   #  ansible.builtin.shell: apt update; apt upgrade -t bullseye-backports -y;
+
+   - name: Debian upgrade
+     ansible.builtin.shell: apt update; apt upgrade -y;
+
+

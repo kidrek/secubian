@@ -1,0 +1,34 @@
+
+- name: "Volatility3 | Setup"
+  become_user: "{{ user }}"
+  ansible.builtin.pip:
+    name: 
+      - volatility3
+    executable: pip3
+
+- name: "Volatility3 - Windows Symbol Tables | Download repository"
+  become_user: "{{ user }}"
+  git:
+    repo: "{{ item.repo }}"
+    accept_hostkey: yes
+    dest: "{{ item.dest }}"
+    recursive: yes
+  with_items:
+    - { repo: "https://github.com/JPCERTCC/Windows-Symbol-Tables", dest: "{{ DFIR_toolsDir }}/volatility3-Windows_symbol_tables" }
+
+- name: "Volatility3 - Windows Symbol Tables | Copy to volatility3 directory"
+  become_user: "{{ user }}"
+  ansible.builtin.shell: mv {{ DFIR_toolsDir }}/volatility3-Windows_symbol_tables/symbols/windows/* $HOME/.local/lib/python3.9/site-packages/volatility3/symbols/windows/; rm -rf {{ DFIR_toolsDir }}/volatility3-Windows_symbol_tables;
+
+- name: "Volatility3 | Download and unarchive Windows Symbol Tables to volatility3 directory"
+  become_user: "{{ user }}"
+  ansible.builtin.unarchive:
+    src: "{{ item.src }}"
+    dest: $HOME/.local/lib/python3.9/site-packages/volatility3/symbols/
+    remote_src: yes
+  with_items:
+    - { src: "https://downloads.volatilityfoundation.org/volatility3/symbols/windows.zip"}
+    - { src: "https://downloads.volatilityfoundation.org/volatility3/symbols/linux.zip"}
+    - { src: "https://downloads.volatilityfoundation.org/volatility3/symbols/mac.zip"}
+
+

@@ -1,0 +1,36 @@
+- name: Install requirements
+  apt:
+    name: 
+      - cargo
+      - feh
+      - git-core
+      - golang
+      - gparted
+      - gtk2-engines-murrine 
+      - gtk2-engines-pixbuf
+      - htop
+      - jq
+      - keepassxc
+      - libjpeg-dev
+      - python2
+      - python-pip-whl
+      - python3
+      - python3-pip
+      - python3-venv
+      - remmina
+      - sassc
+      - screen
+      - terminator
+      - tmux
+      - vim
+      - zulucrypt-gui
+    state: present
+
+- name: Install - Python modules
+  ansible.builtin.pip:
+    name: 
+      - colorama
+      - psutil
+      - lxml
+      - netaddr
+      - rfc5424-logging-handler

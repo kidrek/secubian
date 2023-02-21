@@ -1,0 +1,50 @@
+
+
+- name: "PyEnv | Install requirements"
+  apt:
+    name: 
+      - build-essential 
+      - libssl-dev 
+      - zlib1g-dev 
+      - libbz2-dev 
+      - libreadline-dev 
+      - libsqlite3-dev 
+      - wget 
+      - curl 
+      - llvm 
+      - libncurses5-dev 
+      - libncursesw5-dev 
+      - xz-utils 
+      - tk-dev 
+      - libffi-dev 
+      - liblzma-dev 
+      - python3-openssl 
+      - git
+    state: present
+
+- name: "PyEnv | Download binary"
+  become_user: "{{ user }}"
+  ansible.builtin.shell: curl https://pyenv.run | bash
+
+- name: "PyEnv | Add to .bashrc"
+  become_user: "{{ user }}"
+  lineinfile:
+    path: "/home/{{ user }}/.bashrc"
+    line: "{{ item.name }}"
+    insertbefore: EOF
+  with_items:
+    - { name: '## PYENV' }
+    - { name: 'export PYENV_ROOT="$HOME/.pyenv"' }
+    - { name: "command -v pyenv >/dev/null || export PATH=\"$PYENV_ROOT/bin:$PATH\"" }
+    - { name: "eval \"$(pyenv init -)\"" }
+    - { name: "eval \"$(pyenv virtualenv-init -)\"" }
+
+- name: "PyEnv | Install python 2.7.18"
+  become_user: "{{ user }}"
+  ansible.builtin.shell: . $HOME/.bashrc && $HOME/.pyenv/bin/pyenv install 2.7.18
+
+- name: "PyEnv | Set python 2.7.18 as default"
+  become_user: "{{ user }}"
+  ansible.builtin.shell: $HOME/.pyenv/bin/pyenv global 2.7.18
+
+
