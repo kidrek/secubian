@@ -16,7 +16,7 @@
     reboot_timeout: 3600
 
 - name: Gnome - Copy wallpaper file
-  copy: src=../files/wallpaper_secubian.png dest=/home/{{ user }}/.wallpaper_secubian.png owner="{{ user }}" group="{{ user }}" mode=600
+  copy: src=../../img/secubian_wallpaper.png dest=/home/{{ user }}/.wallpaper_secubian.png owner="{{ user }}" group="{{ user }}" mode=600
 
 - name: Gnome - Set Desktop Wallpaper
   become_user: "{{ user }}"

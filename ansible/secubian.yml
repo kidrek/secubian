@@ -15,23 +15,23 @@
       OSINT_toolsDir: "{{ toolsDir }}/OSINT"
 
   tasks: 
-   #- include: tasks/requirements_packages.yml
-   #- include: tasks/python2.yml
+   - include: tasks/requirements_packages.yml
+   - include: tasks/python2.yml
    - include: tasks/gnome.yml
-   #- include: tasks/vscode.yml
-   #- include: tasks/firefox.yml
-   #- include: tasks/docker.yml
-   #- include: tasks/sphinx-wiki.yml
+   - include: tasks/vscode.yml
+   - include: tasks/firefox.yml
+   - include: tasks/docker.yml
+   - include: tasks/sphinx-wiki.yml
    ##- include: tasks/forensic/bulk_extractor.yml
-   #- include: tasks/forensic/capa.yml
-   #- include: tasks/forensic/CIRCLE_Hashlookup.yml
-   #- include: tasks/forensic/didierStevens.yml
-   #- include: tasks/forensic/IRISWeb.yml
-   #- include: tasks/forensic/timesketch.yml
-   #- include: tasks/forensic/volatility.yml
-   #- include: tasks/forensic/volatility3.yml
-   #- include: tasks/forensic/zircolite.yml
-   #- include: tasks/osint/ct-exposer.yml
+   - include: tasks/forensic/capa.yml
+   - include: tasks/forensic/CIRCLE_Hashlookup.yml
+   - include: tasks/forensic/didierStevens.yml
+   - include: tasks/forensic/IRISWeb.yml
+   - include: tasks/forensic/timesketch.yml
+   - include: tasks/forensic/volatility.yml
+   - include: tasks/forensic/volatility3.yml
+   - include: tasks/forensic/zircolite.yml
+   - include: tasks/osint/ct-exposer.yml
 
    - name: Install - AV Security tools
      apt:
@@ -167,7 +167,7 @@
        - "{{ OSINT_toolsDir }}"
 
    - name: Download SANS Documentation
-     copy: src=../files/Documentation dest="/home/{{ user }}/Desktop/" owner="{{ user }}" group="{{ user }}" mode=600
+     copy: src=../documentation dest="{{ documentationDir }}" owner="{{ user }}" group="{{ user }}" mode=600
 
 
    - name: "Bash | Add aliases"

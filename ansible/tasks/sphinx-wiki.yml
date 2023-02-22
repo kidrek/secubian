@@ -62,7 +62,7 @@
 
 - name: "Sphinx documentation | copy wiki pages"
   copy: 
-    src: ../files/wiki/
+    src: ../../documentation/secubian-wiki/
     dest: "{{ documentationDir }}/wiki/source/"
     owner: "{{ user }}" 
     group: "{{ user }}" 
