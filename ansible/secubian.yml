@@ -15,23 +15,23 @@
       OSINT_toolsDir: "{{ toolsDir }}/OSINT"
 
   tasks: 
-   - include: tasks/requirements_packages.yml
-   - include: tasks/python2.yml
-   - include: tasks/gnome.yml
-   - include: tasks/vscode.yml
-   - include: tasks/firefox.yml
-   - include: tasks/docker.yml
+   #- include: tasks/requirements_packages.yml
+   #- include: tasks/python2.yml
+   #- include: tasks/gnome.yml
+   #- include: tasks/vscode.yml
+   #- include: tasks/firefox.yml
+   #- include: tasks/docker.yml
    - include: tasks/sphinx-wiki.yml
-   ##- include: tasks/forensic/bulk_extractor.yml
-   - include: tasks/forensic/capa.yml
-   - include: tasks/forensic/CIRCLE_Hashlookup.yml
-   - include: tasks/forensic/didierStevens.yml
-   - include: tasks/forensic/IRISWeb.yml
-   - include: tasks/forensic/timesketch.yml
-   - include: tasks/forensic/volatility.yml
-   - include: tasks/forensic/volatility3.yml
-   - include: tasks/forensic/zircolite.yml
-   - include: tasks/osint/ct-exposer.yml
+   ###- include: tasks/forensic/bulk_extractor.yml
+   #- include: tasks/forensic/capa.yml
+   #- include: tasks/forensic/CIRCLE_Hashlookup.yml
+   #- include: tasks/forensic/didierStevens.yml
+   #- include: tasks/forensic/IRISWeb.yml
+   #- include: tasks/forensic/timesketch.yml
+   #- include: tasks/forensic/volatility.yml
+   #- include: tasks/forensic/volatility3.yml
+   #- include: tasks/forensic/zircolite.yml
+   #- include: tasks/osint/ct-exposer.yml
 
    - name: Install - AV Security tools
      apt:
@@ -189,7 +189,7 @@
        - { docker: "log2timeline/plaso" }
 
    - name: Docker disable auto start all containers
-     ansible.builtin.shell: docker update --restart=no $(docker ps -a -q);
+     ansible.builtin.shell: docker update --restart=no $(docker ps -a -q) 2>/dev/null;
 
    #- name: Debian Backports upgrade
    #  ansible.builtin.shell: apt update; apt upgrade -t bullseye-backports -y;
