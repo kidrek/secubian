@@ -59,13 +59,22 @@
     - { name: "myst_parser" }
     - { name: "sphinx_inline_tabs" }
 
+- name: "Sphinx documentation | Download Secubian-Wiki"
+  become_user: "{{ user }}"
+  git:
+    repo: "{{ item.repo }}"
+    accept_hostkey: yes
+    dest: "{{ item.dest }}"
+    recursive: yes
+  with_items:
+    - { repo: "https://github.com/kidrek/secubian-wiki.git", dest: "/tmp/wiki" }
 
-- name: "Sphinx documentation | copy wiki pages"
-  copy: 
-    src: ../../documentation/secubian-wiki/
-    dest: "{{ documentationDir }}/wiki/source/"
-    owner: "{{ user }}" 
-    group: "{{ user }}" 
+- name: "Sphinx documentation | remove old wiki source"
+  become_user: "{{ user }}"
+  ansible.builtin.shell: mv /tmp/wiki/* {{ documentationDir }}/wiki/source/
+
+- name: "Sphinx documentation | remove temp wiki"
+  ansible.builtin.shell: rm -rf /tmp/wiki
 
 - name: "Sphinx documentation | generate html wiki"
   become_user: "{{ user }}"

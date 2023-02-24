@@ -22,7 +22,7 @@
    #- include: tasks/firefox.yml
    #- include: tasks/docker.yml
    - include: tasks/sphinx-wiki.yml
-   ###- include: tasks/forensic/bulk_extractor.yml
+   ##- include: tasks/forensic/bulk_extractor.yml
    #- include: tasks/forensic/capa.yml
    #- include: tasks/forensic/CIRCLE_Hashlookup.yml
    #- include: tasks/forensic/didierStevens.yml
@@ -167,7 +167,12 @@
        - "{{ OSINT_toolsDir }}"
 
    - name: Download SANS Documentation
-     copy: src=../documentation dest="{{ documentationDir }}" owner="{{ user }}" group="{{ user }}" mode=600
+     copy: 
+      src: "../documentation/" 
+      dest: "{{ documentationDir }}" 
+      owner: "{{ user }}" 
+      group: "{{ user }}" 
+      mode: 600
 
 
    - name: "Bash | Add aliases"
