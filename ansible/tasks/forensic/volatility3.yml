@@ -32,3 +32,13 @@
     - { src: "https://downloads.volatilityfoundation.org/volatility3/symbols/mac.zip"}
 
 
+- name: "Volatility3 | Add bash aliases"
+  become_user: "{{ user }}"
+  lineinfile:
+    dest: "~/.bash_aliases"
+    create: yes
+    mode: 0644
+    line: "alias {{ item.alias }}='{{ item.commandLine }}'"
+    regexp: "^alias {{ item.alias }}="
+  with_items:
+    - { alias: "volatility3", commandLine: "vol " }
