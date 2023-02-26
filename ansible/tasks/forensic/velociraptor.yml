@@ -1,0 +1,19 @@
+
+- name: "Velociraptor - Retrieve the latest version"
+  uri:
+    url: "https://api.github.com/repos/Velocidex/velociraptor/releases/latest"
+    return_content: true
+  register: latest_version
+
+- name: Prints two lines of messages, but only if there is an environment value set
+  ansible.builtin.debug:
+    msg:
+    - "La dernière version de Velociraptor est : {{ latest_version.json.tag_name }}"
+
+- name: "Velociraptor - Download the latest version"
+  get_url:                                                           
+    url: "https://github.com/Velocidex/velociraptor/releases/download/{{ latest_version.json.tag_name }}/velociraptor-{{ latest_version.json.tag_name }}-linux-amd64"                       
+    dest: "/usr/bin/velociraptor"
+
+- name: "Velociraptor - Set executable"
+  ansible.builtin.shell: chmod +x /usr/bin/velociraptor
