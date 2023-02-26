@@ -9,29 +9,32 @@
       changed_when: False
 
   vars:
+      casesDir: "/home/{{ user }}/Desktop/Cases"
       toolsDir: "/home/{{ user }}/Desktop/Tools"
       documentationDir: "/home/{{ user }}/Desktop/Documentation"
       DFIR_toolsDir: "{{ toolsDir }}/DFIR"
       OSINT_toolsDir: "{{ toolsDir }}/OSINT"
 
   tasks: 
-   #- include: tasks/requirements_packages.yml
-   #- include: tasks/python2.yml
-   #- include: tasks/gnome.yml
-   #- include: tasks/vscode.yml
-   #- include: tasks/firefox.yml
-   #- include: tasks/docker.yml
+   - include: tasks/requirements_packages.yml
+   - include: tasks/python2.yml
+   - include: tasks/gnome.yml
+   - include: tasks/vscode.yml
+   - include: tasks/firefox.yml
+   - include: tasks/docker.yml
+   - include: tasks/secubian-jupyternotebook.yml
    - include: tasks/sphinx-wiki.yml
    ##- include: tasks/forensic/bulk_extractor.yml
-   #- include: tasks/forensic/capa.yml
-   #- include: tasks/forensic/CIRCLE_Hashlookup.yml
-   #- include: tasks/forensic/didierStevens.yml
-   #- include: tasks/forensic/IRISWeb.yml
-   #- include: tasks/forensic/timesketch.yml
-   #- include: tasks/forensic/volatility.yml
-   #- include: tasks/forensic/volatility3.yml
-   #- include: tasks/forensic/zircolite.yml
-   #- include: tasks/osint/ct-exposer.yml
+   - include: tasks/forensic/capa.yml
+   - include: tasks/forensic/CIRCLE_Hashlookup.yml
+   - include: tasks/forensic/didierStevens.yml
+   - include: tasks/forensic/IRISWeb.yml
+   - include: tasks/forensic/timesketch.yml
+   - include: tasks/forensic/velociraptor.yml
+   - include: tasks/forensic/volatility.yml
+   - include: tasks/forensic/volatility3.yml
+   - include: tasks/forensic/zircolite.yml
+   - include: tasks/osint/ct-exposer.yml
 
    - name: Install - AV Security tools
      apt:
@@ -162,7 +165,7 @@
        group: "{{ user }}"
        mode: 0775
      loop:
-       - "/home/{{ user }}/Desktop/cases"
+       - "{{ casesDir }}"
        - "{{ DFIR_toolsDir }}"
        - "{{ OSINT_toolsDir }}"
 
