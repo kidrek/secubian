@@ -1,0 +1,22 @@
+
+
+- name: Install - jupyter Python3 modules
+  ansible.builtin.pip:
+    name: 
+      - scipy
+      - numpy
+      - matplotlib
+      - msticpy
+      - pandas
+      - poetry
+    executable: pip3
+
+- name: "Jupyter Notebook | Download secubian-JupyterNotebook"
+  become_user: "{{ user }}"
+  git:
+    repo: "{{ item.repo }}"
+    accept_hostkey: yes
+    dest: "{{ item.dest }}"
+    recursive: yes
+  with_items:
+    - { repo: "https://github.com/kidrek/secubian-JupyterNotebook.git", dest: "{{ documentationDir }}/JupyterNotebook" }
