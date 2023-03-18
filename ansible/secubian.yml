@@ -152,6 +152,7 @@
    - name: Install - Malware Analysis Python3 modules
      ansible.builtin.pip:
        name: 
+         - defang               # https://pypi.org/project/defang/
          - quicksand            # https://github.com/tylabs/quicksand
          - stringsifter~=2.0    # https://github.com/mandiant/stringsifter
        executable: pip3
