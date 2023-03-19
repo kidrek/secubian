@@ -155,6 +155,7 @@
          - defang               # https://pypi.org/project/defang/
          - quicksand            # https://github.com/tylabs/quicksand
          - stringsifter~=2.0    # https://github.com/mandiant/stringsifter
+         - XLMMacroDeobfuscator # https://github.com/DissectMalware/XLMMacroDeobfuscator
        executable: pip3
 
 
