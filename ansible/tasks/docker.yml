@@ -45,5 +45,5 @@
     - { alias: "docker-remove_all", commandLine: "sudo docker system prune -a" }
     - { alias: "docker-remove_all_containers", commandLine: "sudo docker stop \\$(sudo docker ps -a -q); sudo docker rm \\$(sudo docker ps -a -q)" }
     - { alias: "docker-remove_all_images", commandLine: "sudo docker rmi \\$(docker images -a -q)" }
-    - { alias: "docker-remove_all_volumes", commandLine: "sudo docker volume rm $(sudo docker volume ls -q)" }
+    - { alias: "docker-remove_all_volumes", commandLine: "sudo docker volume rm \\$(sudo docker volume ls -q)" }
     - { alias: "docker-stop_all_containers", commandLine: "sudo docker stop \\$(sudo docker ps -a -q);" }
