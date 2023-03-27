@@ -7,9 +7,11 @@
       - numpy
       - matplotlib
       - msticpy
+      - msticpy[azure]
       - pandas
       - poetry
     executable: pip3
+  tags: jupyter
 
 - name: "Jupyter Notebook | Download secubian-JupyterNotebook"
   become_user: "{{ user }}"
@@ -20,3 +22,4 @@
     recursive: yes
   with_items:
     - { repo: "https://github.com/kidrek/secubian-JupyterNotebook.git", dest: "{{ documentationDir }}/JupyterNotebook" }
+  tags: jupyter

@@ -26,6 +26,11 @@
       - zulucrypt-gui
     state: present
 
+- name: remove old OpenSSL directory
+  file:
+    state: absent
+    path: /usr/lib/python3/dist-packages/OpenSSL
+
 - name: Install - Python modules
   ansible.builtin.pip:
     name: 
@@ -33,4 +38,5 @@
       - psutil
       - lxml
       - netaddr
+      - pyopenssl
       - rfc5424-logging-handler

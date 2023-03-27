@@ -1,8 +1,13 @@
+- name: Gather the package facts
+  ansible.builtin.package_facts:
+    manager: auto
+
 - name: Install Gnome desktop
   apt:
     name: 
       - task-gnome-desktop
     state: present
+  register: gnomeStatus
 
 - name: Install Gnome Addons
   apt:
@@ -10,10 +15,12 @@
       - gnome-shell-extension-dash-to-panel 
       - gnome-shell-extension-desktop-icons
     state: present
+  when: gnomeStatus is succeeded
 
 - name: Reboot a slow machine that might have lots of updates to apply
   ansible.builtin.reboot:
     reboot_timeout: 3600
+  when: gnomeStatus is succeeded
 
 - name: Gnome - Copy wallpaper file
   copy: src=../../img/secubian_wallpaper.png dest=/home/{{ user }}/.wallpaper_secubian.png owner="{{ user }}" group="{{ user }}" mode=600
@@ -125,12 +132,14 @@
     dest: /tmp/vimix-gtk-themes
     clone: yes
     update: yes
+  when: gnomeStatus is succeeded
 
 - name: Gnome Application Theme vimix-gtk-themes - Installation
   become_user: "{{ user }}"
   ansible.builtin.shell: chmod +x /tmp/vimix-gtk-themes/install.sh; /tmp/vimix-gtk-themes/install.sh -c dark -t doder -s compact; rm -rf /tmp/vimix-gtk-themes;
   args:
     chdir: /tmp/vimix-gtk-themes
+  when: gnomeStatus is succeeded
 
 - name: Gnome Application Theme - Apply vimix-gtk-themes
   become_user: "{{ user }}"
@@ -145,11 +154,13 @@
   copy: 
     src: ../files/theme-icons/Flat-Remix-Blue-Dark.tar.gz
     dest: /usr/share/icons/
+  when: gnomeStatus is succeeded
 
 - name: Gnome Icon Theme flat-remix-icons - Installation
   ansible.builtin.shell: tar xvzf Flat-Remix-Blue-Dark.tar.gz
   args:
     chdir: /usr/share/icons/
+  when: gnomeStatus is succeeded
 
 - name: Gnome Icon Theme - flat-remix-icons
   become_user: "{{ user }}"
@@ -170,6 +181,7 @@
     mode: 0644
     line: '  <!--<style name="current-line"                background="aluminium1"/>-->'
     regexp: '^  <style name="current-line"                background="aluminium1"/>'
+  when: gnomeStatus is succeeded
 
 - name: GEdit - Change highlight current line number theme
   lineinfile:
@@ -178,3 +190,4 @@
     mode: 0644
     line: '  <!--<style name="current-line-number"         background="aluminium1"/>-->'
     regexp: '^  <style name="current-line-number"         background="aluminium1"/>'
+  when: gnomeStatus is succeeded

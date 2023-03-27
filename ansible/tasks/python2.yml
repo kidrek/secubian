@@ -22,9 +22,15 @@
       - git
     state: present
 
+- name: "PyEnv | Check if binary exists"
+  stat:
+    path: /home/{{user}}/.pyenv
+  register: pyEnvFile
+
 - name: "PyEnv | Download binary"
   become_user: "{{ user }}"
   ansible.builtin.shell: curl https://pyenv.run | bash
+  when: not pyEnvFile.stat.exists
 
 - name: "PyEnv | Add to .bashrc"
   become_user: "{{ user }}"
@@ -38,13 +44,16 @@
     - { name: "command -v pyenv >/dev/null || export PATH=\"$PYENV_ROOT/bin:$PATH\"" }
     - { name: "eval \"$(pyenv init -)\"" }
     - { name: "eval \"$(pyenv virtualenv-init -)\"" }
+  when: not pyEnvFile.stat.exists
 
 - name: "PyEnv | Install python 2.7.18"
   become_user: "{{ user }}"
   ansible.builtin.shell: . $HOME/.bashrc && $HOME/.pyenv/bin/pyenv install 2.7.18
+  when: not pyEnvFile.stat.exists
 
 - name: "PyEnv | Set python 2.7.18 as default"
   become_user: "{{ user }}"
   ansible.builtin.shell: $HOME/.pyenv/bin/pyenv global 2.7.18
+  when: not pyEnvFile.stat.exists
 
 

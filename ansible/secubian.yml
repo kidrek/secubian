@@ -9,13 +9,27 @@
       changed_when: False
 
   vars:
-      casesDir: "/home/{{ user }}/Desktop/Cases"
-      toolsDir: "/home/{{ user }}/Desktop/Tools"
-      documentationDir: "/home/{{ user }}/Desktop/Documentation"
+      casesDir: "/home/{{ user }}/Documents/Cases"
+      toolsDir: "/home/{{ user }}/Documents/Tools"
+      documentationDir: "/home/{{ user }}/Documents/Documentation"
       DFIR_toolsDir: "{{ toolsDir }}/DFIR"
       OSINT_toolsDir: "{{ toolsDir }}/OSINT"
 
+
   tasks: 
+   - name: create directory if they don't exist
+     file:
+       path: "{{ item }}"
+       state: directory
+       owner: "{{ user }}"
+       group: "{{ user }}"
+       mode: 0775
+     loop:
+       - "{{ casesDir }}"
+       - "{{ DFIR_toolsDir }}"
+       - "{{ OSINT_toolsDir }}"
+
+
    - include: tasks/requirements_packages.yml
    - include: tasks/python2.yml
    - include: tasks/gnome.yml
@@ -24,7 +38,7 @@
    - include: tasks/docker.yml
    - include: tasks/secubian-jupyternotebook.yml
    - include: tasks/sphinx-wiki.yml
-   ##- include: tasks/forensic/bulk_extractor.yml
+   #- include: tasks/forensic/bulk_extractor.yml
    - include: tasks/forensic/capa.yml
    - include: tasks/forensic/CIRCLE_Hashlookup.yml
    - include: tasks/forensic/didierStevens.yml
@@ -154,22 +168,11 @@
        name: 
          - defang               # https://pypi.org/project/defang/
          - quicksand            # https://github.com/tylabs/quicksand
-         - stringsifter~=2.0    # https://github.com/mandiant/stringsifter
+         #- stringsifter~=2.0    # https://github.com/mandiant/stringsifter  <-- pb durant l'installation
          - XLMMacroDeobfuscator # https://github.com/DissectMalware/XLMMacroDeobfuscator
        executable: pip3
 
 
-   - name: create directory if they don't exist
-     file:
-       path: "{{ item }}"
-       state: directory
-       owner: "{{ user }}"
-       group: "{{ user }}"
-       mode: 0775
-     loop:
-       - "{{ casesDir }}"
-       - "{{ DFIR_toolsDir }}"
-       - "{{ OSINT_toolsDir }}"
 
    - name: Download SANS Documentation
      copy: 
@@ -208,3 +211,12 @@
      ansible.builtin.shell: apt update; apt upgrade -y;
 
 
+   - name: upload cases
+     copy: 
+      src: "/Users/kidrek/SynologyDrive/00_Cybersecurity/00_projects/202302_secubian_jupyternotebook/dfir/payloads_and_dumps" 
+      dest: "{{ casesDir }}" 
+      owner: "{{ user }}" 
+      group: "{{ user }}" 
+      mode: 600
+     tags: 
+       - dumps

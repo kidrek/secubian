@@ -44,9 +44,9 @@
     - { alias: "volatility3", commandLine: "vol " }
 
 
-- name: "Volatility3 | Download memory sample"
-  become_user: "{{ user }}"
-  get_url:                                                           
-    url: "https://s3-eu-west-1.amazonaws.com/course.oc-static.com/courses/1750151/OC-002-memdump.zip"                       
-    dest: "{{ casesDir }}"
+#- name: "Volatility3 | Download memory sample"
+#  become_user: "{{ user }}"
+#  get_url:                                                           
+#    url: "https://s3-eu-west-1.amazonaws.com/course.oc-static.com/courses/1750151/OC-002-memdump.zip"                       
+#    dest: "{{ casesDir }}"
   

@@ -1,15 +1,20 @@
 
+- name: "Timesketch | Check if folder exists"
+  stat:
+    path: "{{ DFIR_toolsDir }}/timesketch"
+  register: timesketchDirectory
+  when: arch == "amd64"
 
 - name: "Timesketch | Create folder"
   become_user: "{{ user }}"
   file:
-    path: "{{ item }}"
+    path: "{{ DFIR_toolsDir }}/timesketch"
     state: directory
     owner: "{{ user }}"
     group: "{{ user }}"
-    mode: 0775
-  loop:
-    - "{{ DFIR_toolsDir }}/timesketch"
+  when: 
+    - not timesketchDirectory.stat.exists
+    - arch == "amd64"
 
 - name: "Timesketch | Download setup script"
   become_user: "{{ user }}"
@@ -17,14 +22,42 @@
     url: https://raw.githubusercontent.com/google/timesketch/master/contrib/deploy_timesketch.sh
     dest: "{{ DFIR_toolsDir }}/timesketch/deploy_timesketch.sh"
     mode: 0755 
+  when: 
+    - not timesketchDirectory.stat.exists
+    - arch == "amd64"
 
 - name: "Timesketch | Execute deploy script"
   become_user: "{{ user }}"
   ansible.builtin.shell: cd {{ DFIR_toolsDir }}/timesketch; yes N | sudo ./deploy_timesketch.sh --start-container;
+  when: 
+    - not timesketchDirectory.stat.exists
+    - arch == "amd64"
 
-- name: "Timesketch | Create user"
-  become_user: "{{ user }}"
-  ansible.builtin.shell: sleep 10; cd {{ DFIR_toolsDir }}/timesketch/timesketch; sudo docker-compose exec timesketch-web tsctl create-user {{ user }} --password {{ user }};
+- name: "Timesketch | Check if container is running"
+  wait_for:
+    host: "127.0.0.1"
+    port: 443
+  when: 
+    - not timesketchDirectory.stat.exists
+    - arch == "amd64"
+
+- name: "Timesketch | modify TCP Port"
+  lineinfile:
+    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/config.env"
+    line: 'NGINX_HTTPS_PORT=4431'
+    regexp: "^NGINX_HTTPS_PORT="
+  when: 
+    - not timesketchDirectory.stat.exists
+    - arch == "amd64"
+
+- name: "Timesketch | modify TCP Port"
+  lineinfile:
+    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/config.env"
+    line: 'NGINX_HTTP_PORT=8081'
+    regexp: "^NGINX_HTTP_PORT="
+  when: 
+    - not timesketchDirectory.stat.exists
+    - arch == "amd64"
 
 - name: "Timesketch | Add BASH aliases"
   become_user: "{{ user }}"
@@ -34,3 +67,30 @@
     mode: 0644
     line: 'alias timesketch="cd {{ DFIR_toolsDir }}/timesketch/timesketch; sudo docker-compose up"'
     regexp: "^alias timesketch="
+  when: 
+    - not timesketchDirectory.stat.exists
+    - arch == "amd64"
+
+- name: "Timesketch | Create user"
+  become_user: "{{ user }}"
+  ansible.builtin.shell: sleep 30; cd {{ DFIR_toolsDir }}/timesketch/timesketch; sudo docker-compose exec timesketch-web tsctl create-user {{ user }} --password {{ user }};
+  when: 
+    - not timesketchDirectory.stat.exists
+    - arch == "amd64"
+
+- name: "Timesketch | Stop a container"
+  docker_container:
+    name: "{{ item }}"
+    state: stopped
+  loop:
+    - "timesketch-web"
+    - "timesketch-web-v2"
+    - "timesketch-worker"
+    - "opensearch"
+    - "postgres"
+    - "redis"
+    - "nginx"
+  when: 
+    - not timesketchDirectory.stat.exists
+    - arch == "amd64"
+

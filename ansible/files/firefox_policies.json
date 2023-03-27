@@ -21,7 +21,7 @@
         },
         {
           "name": "Documentation - Secubian",
-          "url": "file:///home/{{ user }}/Desktop/Documentation/wiki/build/html/index.html"
+          "url": "file://{{ documentationDir }}/wiki/build/html/index.html"
         },
         {
           "name": "DFIR",
