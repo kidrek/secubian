@@ -34,7 +34,7 @@
 # Add Alias
 ## Remove all container : docker ps -aq | xargs docker stop | xargs docker rm
 - name: "Docker | Add BASH aliases"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   lineinfile:
     dest: "~/.bash_aliases"
     create: yes

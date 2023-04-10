@@ -1,7 +1,7 @@
 
 
 - name: "CT-EXPOSER | Clone git repos"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   git:
     repo: "{{ item.repo }}"
     dest: "{{ item.dest }}"
@@ -12,5 +12,5 @@
     - { repo: "https://github.com/chris408/ct-exposer.git", dest: "{{ OSINT_toolsDir }}/ct-exposer" }
 
 - name: "CT-EXPOSER | Python dependencies installation"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.shell: cd {{ OSINT_toolsDir }}/ct-exposer; pip3 install -r requirements.txt;

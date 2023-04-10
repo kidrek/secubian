@@ -14,7 +14,7 @@
   tags: jupyter
 
 - name: "Jupyter Notebook | Download secubian-JupyterNotebook"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   git:
     repo: "{{ item.repo }}"
     accept_hostkey: yes

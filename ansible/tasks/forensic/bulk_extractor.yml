@@ -12,7 +12,7 @@
 
 
 - name: "Bulk Extractor | Clone git repos"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   git:
     repo: "{{ item.repo }}"
     accept_hostkey: yes
@@ -21,7 +21,7 @@
     - { repo: "https://github.com/simsong/bulk_extractor.git", dest: "{{ DFIR_toolsDir }}/bulk_extractor" }
 
 - name: "Bulk Extractor | Setup specific libraries"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.shell: "{{ item.cmdline }}"
   with_items:
     - { cmdline: "cd {{ DFIR_toolsDir }}/bulk_extractor; sudo chmod +x bootstrap.sh; sudo ./bootstrap.sh;" }  

@@ -15,7 +15,6 @@
       - gnome-shell-extension-dash-to-panel 
       - gnome-shell-extension-desktop-icons
     state: present
-  when: gnomeStatus is succeeded
 
 - name: Reboot a slow machine that might have lots of updates to apply
   ansible.builtin.reboot:
@@ -23,130 +22,128 @@
   when: gnomeStatus is succeeded
 
 - name: Gnome - Copy wallpaper file
-  copy: src=../../img/secubian_wallpaper.png dest=/home/{{ user }}/.wallpaper_secubian.png owner="{{ user }}" group="{{ user }}" mode=600
+  copy: src=../../img/secubian_wallpaper.png dest=/home/{{ ansible_user }}/.wallpaper_secubian.png owner="{{ ansible_user }}" group="{{ ansible_user }}" mode=600
 
 - name: Gnome - Set Desktop Wallpaper
-  become_user: "{{ user }}"
-  dconf: key="/org/gnome/desktop/background/picture-uri" value="'file:///home/{{ user }}/.wallpaper_secubian.png'"
+  become_user: "{{ ansible_user }}"
+  dconf: key="/org/gnome/desktop/background/picture-uri" value="'file:///home/{{ ansible_user }}/.wallpaper_secubian.png'"
 
 - name: Gnome - Set Lockscreen Wallpaper
-  become_user: "{{ user }}"
-  dconf: key="/org/gnome/desktop/lockscreen/picture-uri" value="'file:///home/{{ user }}/.wallpaper_secubian.png'"
+  become_user: "{{ ansible_user }}"
+  dconf: key="/org/gnome/desktop/lockscreen/picture-uri" value="'file:///home/{{ ansible_user }}/.wallpaper_secubian.png'"
 
 - name: Gnome - Enable maximize,minimize button on window
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/desktop/wm/preferences/button-layout" value="'appmenu:minimize,maximize,close'"
 
 - name: Gnome - Set list view in window
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/nautilus/preferences/default-folder-viewer" value="'list-view'"
 
 - name: Gnome - Set default Gnome font 
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/desktop/interface/font-name" value="'Cantarell 10'"
 
 - name: Gnome - Set font size
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/desktop/interface/monospace-font-name" value="'Monospace 10'"
 
 - name: Gnome - disable sleep when on AC power
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/settings-daemon/plugins/power/sleep-inactive-ac-type" value="'nothing'"
 
 - name: Gnome - disable sleep when on Battery power
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/settings-daemon/plugins/power/sleep-inactive-battery-type" value="'nothing'"
 
 - name: Gnome - disable screen sleep off
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/settings-daemon/plugins/power/idle-dim" value="false"
 
 - name: Gnome - disable session idle
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/desktop/session/idle-delay" value="uint32 0"
 
 - name: Gnome - disable auto screen lock
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/desktop/screensaver/lock-enabled" value="false"
 
 - name: Gnome - Disabling Animations
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/desktop/interface/enable-animations" value="false"
 
 - name: Enable Gnome Shell extension - apps-menu@gnome-shell-extensions.gcampax.github.com
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   command: gnome-shell-extension-tool --enable-extension apps-menu@gnome-shell-extensions.gcampax.github.com
 
 - name: Enable Gnome Shell extension - auto-move-windows@gnome-shell-extensions.gcampax.github.com
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   command: gnome-shell-extension-tool --enable-extension auto-move-windows@gnome-shell-extensions.gcampax.github.com
 
 - name: Enable Gnome Shell extension - caffeine@patapon.info
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   command: gnome-shell-extension-tool --enable-extension caffeine@patapon.info
 
 - name: Enable Gnome Shell extension - desktop-icons@csoriano
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   command: gnome-shell-extension-tool --enable-extension desktop-icons@csoriano
 
 - name: Enable Gnome Shell extension - places-menu@gnome-shell-extensions.gcampax.github.com
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   command: gnome-shell-extension-tool --enable-extension places-menu@gnome-shell-extensions.gcampax.github.com
 
 - name: Enable Gnome Shell extension - user-theme@gnome-shell-extensions.gcampax.github.com
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   command: gnome-shell-extension-tool --enable-extension user-theme@gnome-shell-extensions.gcampax.github.com
 
 - name: Enable Gnome Shell extension - workspace-indicator@gnome-shell-extensions.gcampax.github.com
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   command: gnome-shell-extension-tool --enable-extension workspace-indicator@gnome-shell-extensions.gcampax.github.com
 
 - name: Enable Gnome Shell extension - dash-to-panel@jderose9.github.com
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   command: gnome-shell-extension-tool --enable-extension dash-to-panel@jderose9.github.com
 
 - name: Gnome - Configure dash-to-panel
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/shell/extensions/dash-to-panel/panel-size" value="38"
 
 - name: Gnome - Configure dash-to-panel - leftbox font size
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/shell/extensions/dash-to-panel/leftbox-size" value="13"
 
 - name: Gnome - Configure dash-to-panel
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/shell/extensions/dash-to-panel/dot-style-focused" value="'DOTS'"
 
 - name: Gnome - Configure dash-to-panel
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/shell/extensions/dash-to-panel/dot-style-unfocused" value="'DOTS'"
 
 - name: Gnome - Set/Remove favorites apps from Dash-panel
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/shell/favorite-apps" value="['firefox-esr.desktop', 'terminator.desktop', 'code.desktop', 'gedit.desktop','org.keepassxc.KeePassXC.desktop', 'zulucrypt-gui.desktop', 'org.remmina.Remmina.desktop','sqlitebrowser.desktop']"
 
 - name: Gnome Application Theme vimix-gtk-themes - Clone a github repository
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   git:
     repo: https://github.com/vinceliuice/vimix-gtk-themes.git
     dest: /tmp/vimix-gtk-themes
     clone: yes
     update: yes
-  when: gnomeStatus is succeeded
 
 - name: Gnome Application Theme vimix-gtk-themes - Installation
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.shell: chmod +x /tmp/vimix-gtk-themes/install.sh; /tmp/vimix-gtk-themes/install.sh -c dark -t doder -s compact; rm -rf /tmp/vimix-gtk-themes;
   args:
     chdir: /tmp/vimix-gtk-themes
-  when: gnomeStatus is succeeded
 
 - name: Gnome Application Theme - Apply vimix-gtk-themes
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/desktop/interface/gtk-theme" value="'vimix-dark-compact-doder'"
 
 - name: Gnome Application Theme - Apply vimix-gtk-themes
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/shell/extensions/user-theme/name" value="'vimix-dark-compact-doder'"
 
 - name: Gnome Icon Theme flat-remix-icons - Transfert
@@ -154,24 +151,22 @@
   copy: 
     src: ../files/theme-icons/Flat-Remix-Blue-Dark.tar.gz
     dest: /usr/share/icons/
-  when: gnomeStatus is succeeded
 
 - name: Gnome Icon Theme flat-remix-icons - Installation
   ansible.builtin.shell: tar xvzf Flat-Remix-Blue-Dark.tar.gz
   args:
     chdir: /usr/share/icons/
-  when: gnomeStatus is succeeded
 
 - name: Gnome Icon Theme - flat-remix-icons
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/desktop/interface/icon-theme" value="'Flat-Remix-Blue-Dark'"
 
 - name: Gnome - Disable automount
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/desktop/media-handling/automount" value="false"
 
 - name: Gnome - Disable automount-open
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/desktop/media-handling/automount-open" value="false"
 
 - name: GEdit - Change highlight current line theme
@@ -181,7 +176,6 @@
     mode: 0644
     line: '  <!--<style name="current-line"                background="aluminium1"/>-->'
     regexp: '^  <style name="current-line"                background="aluminium1"/>'
-  when: gnomeStatus is succeeded
 
 - name: GEdit - Change highlight current line number theme
   lineinfile:
@@ -190,4 +184,3 @@
     mode: 0644
     line: '  <!--<style name="current-line-number"         background="aluminium1"/>-->'
     regexp: '^  <style name="current-line-number"         background="aluminium1"/>'
-  when: gnomeStatus is succeeded

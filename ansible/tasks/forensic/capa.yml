@@ -7,7 +7,7 @@
     executable: pip3
 
 - name: "FLARE CAPA | Clone git CAPA rules repos"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   git:
     repo: "{{ item.repo }}"
     dest: "{{ item.dest }}"
@@ -18,7 +18,7 @@
     - { repo: "https://github.com/mandiant/capa-rules.git", dest: "{{ DFIR_toolsDir }}/flare-capa-rules" }
 
 - name: "FLARE CAPA | Add BASH aliases"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   lineinfile:
     dest: "~/.bash_aliases"
     create: yes

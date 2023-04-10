@@ -1,13 +1,13 @@
 
 - name: "Volatility3 | Setup"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
     name: 
       - volatility3
     executable: pip3
 
 - name: "Volatility3 - Windows Symbol Tables | Download repository"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   git:
     repo: "{{ item.repo }}"
     accept_hostkey: yes
@@ -17,11 +17,11 @@
     - { repo: "https://github.com/JPCERTCC/Windows-Symbol-Tables", dest: "{{ DFIR_toolsDir }}/volatility3-Windows_symbol_tables" }
 
 - name: "Volatility3 - Windows Symbol Tables | Copy to volatility3 directory"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.shell: mv {{ DFIR_toolsDir }}/volatility3-Windows_symbol_tables/symbols/windows/* $HOME/.local/lib/python3.9/site-packages/volatility3/symbols/windows/; rm -rf {{ DFIR_toolsDir }}/volatility3-Windows_symbol_tables;
 
 - name: "Volatility3 | Download and unarchive Windows Symbol Tables to volatility3 directory"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.unarchive:
     src: "{{ item.src }}"
     dest: $HOME/.local/lib/python3.9/site-packages/volatility3/symbols/
@@ -33,7 +33,7 @@
 
 
 - name: "Volatility3 | Add bash aliases"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   lineinfile:
     dest: "~/.bash_aliases"
     create: yes
@@ -45,7 +45,7 @@
 
 
 #- name: "Volatility3 | Download memory sample"
-#  become_user: "{{ user }}"
+#  become_user: "{{ ansible_user }}"
 #  get_url:                                                           
 #    url: "https://s3-eu-west-1.amazonaws.com/course.oc-static.com/courses/1750151/OC-002-memdump.zip"                       
 #    dest: "{{ casesDir }}"

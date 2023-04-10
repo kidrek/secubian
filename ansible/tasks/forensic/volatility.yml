@@ -18,7 +18,7 @@
 
 
 - name: "Volatility | Install python libraries needed by volatility"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
     name: 
       - construct
@@ -38,7 +38,7 @@
 
 
 - name: "Volatility | Clone git repos"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   git:
     repo: "{{ item.repo }}"
     accept_hostkey: yes
@@ -91,7 +91,7 @@
     dest: "{{ DFIR_toolsDir }}/volatility/plugx+andromeda"
 
 - name: "Bash | Add aliases"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   lineinfile:
     dest: "~/.bash_aliases"
     create: yes

@@ -32,7 +32,7 @@
     update_cache: true
 
 - name: "Visual Studio Code | Install Extensions"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.shell: code --install-extension {{ item.extension }}; 
   with_items:
     - { extension: "ms-python.python" }
@@ -40,7 +40,7 @@
 
 
 - name: "Visual Studio Code | Install jupyter package"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
     name: 
       - jupyter

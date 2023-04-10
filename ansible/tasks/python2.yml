@@ -24,18 +24,18 @@
 
 - name: "PyEnv | Check if binary exists"
   stat:
-    path: /home/{{user}}/.pyenv
+    path: /home/{{ ansible_user }}/.pyenv
   register: pyEnvFile
 
 - name: "PyEnv | Download binary"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.shell: curl https://pyenv.run | bash
   when: not pyEnvFile.stat.exists
 
 - name: "PyEnv | Add to .bashrc"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   lineinfile:
-    path: "/home/{{ user }}/.bashrc"
+    path: "/home/{{ ansible_user }}/.bashrc"
     line: "{{ item.name }}"
     insertbefore: EOF
   with_items:
@@ -47,12 +47,12 @@
   when: not pyEnvFile.stat.exists
 
 - name: "PyEnv | Install python 2.7.18"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.shell: . $HOME/.bashrc && $HOME/.pyenv/bin/pyenv install 2.7.18
   when: not pyEnvFile.stat.exists
 
 - name: "PyEnv | Set python 2.7.18 as default"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.shell: $HOME/.pyenv/bin/pyenv global 2.7.18
   when: not pyEnvFile.stat.exists
 

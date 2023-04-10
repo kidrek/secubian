@@ -6,18 +6,18 @@
   when: arch == "amd64"
 
 - name: "Timesketch | Create folder"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   file:
     path: "{{ DFIR_toolsDir }}/timesketch"
     state: directory
-    owner: "{{ user }}"
-    group: "{{ user }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
   when: 
     - not timesketchDirectory.stat.exists
     - arch == "amd64"
 
 - name: "Timesketch | Download setup script"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.get_url:
     url: https://raw.githubusercontent.com/google/timesketch/master/contrib/deploy_timesketch.sh
     dest: "{{ DFIR_toolsDir }}/timesketch/deploy_timesketch.sh"
@@ -27,7 +27,7 @@
     - arch == "amd64"
 
 - name: "Timesketch | Execute deploy script"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.shell: cd {{ DFIR_toolsDir }}/timesketch; yes N | sudo ./deploy_timesketch.sh --start-container;
   when: 
     - not timesketchDirectory.stat.exists
@@ -60,7 +60,7 @@
     - arch == "amd64"
 
 - name: "Timesketch | Add BASH aliases"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   lineinfile:
     dest: "~/.bash_aliases"
     create: yes
@@ -72,8 +72,8 @@
     - arch == "amd64"
 
 - name: "Timesketch | Create user"
-  become_user: "{{ user }}"
-  ansible.builtin.shell: sleep 30; cd {{ DFIR_toolsDir }}/timesketch/timesketch; sudo docker-compose exec timesketch-web tsctl create-user {{ user }} --password {{ user }};
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.shell: sleep 30; cd {{ DFIR_toolsDir }}/timesketch/timesketch; sudo docker-compose exec timesketch-web tsctl create-user {{ ansible_user }} --password {{ ansible_user }};
   when: 
     - not timesketchDirectory.stat.exists
     - arch == "amd64"

@@ -1,7 +1,7 @@
 
 
 - name: "DidierStevensSuite | Download repository"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   git:
     repo: "{{ item.repo }}"
     accept_hostkey: yes
@@ -17,7 +17,7 @@
 
 
 - name: "DidierStevensSuite | Bash - Add aliases"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   lineinfile:
     dest: "~/.bashrc"
     create: yes

@@ -1,7 +1,7 @@
 
 
 - name: "Zircolite | Download repository"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   git:
     repo: "{{ item.repo }}"
     accept_hostkey: yes
@@ -11,11 +11,11 @@
     - { repo: "https://github.com/wagga40/Zircolite.git", dest: "{{ DFIR_toolsDir }}/Zircolite" }
 
 - name: "Zircolite | Requirements tools installation"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.shell: cd {{ DFIR_toolsDir }}/Zircolite; pip3 install -r requirements.txt 
 
 - name: "Zircolite | Bash - Add aliases"
-  become_user: "{{ user }}"
+  become_user: "{{ ansible_user }}"
   lineinfile:
     dest: "~/.bash_aliases"
     create: yes
