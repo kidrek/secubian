@@ -29,7 +29,6 @@
        - "{{ DFIR_toolsDir }}"
        - "{{ OSINT_toolsDir }}"
 
-
    - include: tasks/requirements_packages.yml
    - include: tasks/python2.yml
    - include: tasks/gnome.yml
@@ -70,8 +69,12 @@
        virtualenv_command: $HOME/.pyenv/bin/pyenv virtualenv 2.7.18
 
    - name: Install - Forensic Python3 modules
+     become_user: "{{ ansible_user }}"
      ansible.builtin.pip:
        name: 
+         - eml_parser
+         - extract-msg
+         - msg_parser[rtf]
          - oletools
          - pillow
        executable: pip3
@@ -82,7 +85,6 @@
          - binwalk
          - chntpw
          - dc3dd
-         - eml_parser
          - exiftool
          - extundelete 
          - foremost
@@ -94,7 +96,6 @@
          - libewf-dev
          - libguestfs-tools
          - libvshadow-utils
-         - msg_parser[rtf]
          - python3-ssdeep
          - scalpel
          - sleuthkit
@@ -113,14 +114,13 @@
        - { repo: "https://github.com/JPCERTCC/LogonTracer.git", dest: "{{ DFIR_toolsDir }}/LogonTracer" }
        - { repo: "https://github.com/countercept/chainsaw.git", dest: "{{ DFIR_toolsDir }}/chainsaw" }
 
-
    - name: Install - Network Python3 modules
+     become_user: "{{ ansible_user }}"
      ansible.builtin.pip:
        name: 
          - scapy
          - setuptools
        executable: pip3
-
 
    - name: Install - Network Security tools
      apt:
@@ -135,11 +135,11 @@
        state: present
 
    - name: Install - OSINT Python modules
+     become_user: "{{ ansible_user }}"
      ansible.builtin.pip:
        name: 
          - bbot # https://github.com/blacklanternsecurity/bbot
        executable: pip3
-
 
    - name: Install - Pentest tools
      apt:
@@ -166,6 +166,7 @@
        state: present
 
    - name: Install - Malware Analysis Python3 modules
+     become_user: "{{ ansible_user }}"
      ansible.builtin.pip:
        name: 
          - defang               # https://pypi.org/project/defang/
@@ -174,8 +175,6 @@
          - XLMMacroDeobfuscator # https://github.com/DissectMalware/XLMMacroDeobfuscator
        executable: pip3
 
-
-
    - name: Download SANS Documentation
      copy: 
       src: "../documentation/" 
@@ -183,7 +182,6 @@
       owner: "{{ ansible_user }}" 
       group: "{{ ansible_user }}" 
       mode: 600
-
 
    - name: "Bash | Add aliases"
      become_user: "{{ ansible_user }}"
@@ -211,7 +209,6 @@
 
    - name: Debian upgrade
      ansible.builtin.shell: apt update; apt upgrade -y;
-
 
    - name: upload cases
      copy: 
