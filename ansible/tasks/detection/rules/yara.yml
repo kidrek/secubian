@@ -1,0 +1,29 @@
+
+- name: "Yara rules Repositories | Download repository"
+  become_user: "{{ ansible_user }}"
+  git:
+    repo: "{{ item.repo }}"
+    accept_hostkey: yes
+    dest: "{{ item.dest }}"
+    recursive: yes
+    force: true
+  with_items:
+    - { repo: "https://github.com/bartblaze/Yara-rules.git", dest: "{{ DETECTION_rulesDir }}/yara/bartblaze" }
+    - { repo: "https://github.com/kevoreilly/CAPEv2.git", dest: "{{ DETECTION_rulesDir }}/yara/kevoreilly_CAPEv2/" }
+    - { repo: "https://github.com/elastic/protections-artifacts.git", dest: "{{ DETECTION_rulesDir }}/yara/elastic/" }
+    - { repo: "https://github.com/Neo23x0/signature-base.git", dest: "{{ DETECTION_rulesDir }}/yara/Neo23x0/" }
+    - { repo: "https://github.com/fboldewin/YARA-rules.git", dest: "{{ DETECTION_rulesDir }}/yara/fboldewin/" }
+    - { repo: "https://github.com/chronicle/GCTI.git", dest: "{{ DETECTION_rulesDir }}/yara/GCTI/" }
+    - { repo: "https://github.com/advanced-threat-research/Yara-Rules.git", dest: "{{ DETECTION_rulesDir }}/yara/advanced-threat-research/" }
+    - { repo: "https://github.com/reversinglabs/reversinglabs-yara-rules.git", dest: "{{ DETECTION_rulesDir }}/yara/reversinglabs/" }
+
+- name: Upload yara merge script
+  # source: https://gist.githubusercontent.com/andreafortuna/29c6ea48adf3d45a979a78763cdc7ce9/raw/4ec711d37f1b428b63bed1f786b26a0654aa2f31/malware_yara_rules.py
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.copy: 
+    src: "../files/malware_yara_rules.py"
+    remote_src: no
+    dest: "{{ DETECTION_rulesDir }}/yara/malware_yara_rules.py"
+
+- name: Generate one yara rules from downloaded repositories
+  ansible.builtin.shell: "cd {{ DETECTION_rulesDir }}/yara/; python ./malware_yara_rules.py"
