@@ -1,0 +1,13 @@
+
+- name: "Sigma Repositories | Download repository"
+  become_user: "{{ ansible_user }}"
+  git:
+    repo: "{{ item.repo }}"
+    accept_hostkey: yes
+    dest: "{{ item.dest }}"
+    recursive: yes
+    force: true
+  with_items:
+    - { repo: "https://github.com/SigmaHQ/sigma.git", dest: "{{ DETECTION_rulesDir }}/sigma/sigmaHQ" }
+    - { repo: "https://github.com/mdecrevoisier/SIGMA-detection-rules.git", dest: "{{ DETECTION_rulesDir }}/sigma/mdecrevoisier" }
+
