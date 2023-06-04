@@ -13,6 +13,7 @@
       toolsDir: "/home/{{ ansible_user }}/Documents/Tools"
       documentationDir: "/home/{{ ansible_user }}/Documents/Documentation"
       DFIR_toolsDir: "{{ toolsDir }}/DFIR"
+      DETECTION_rulesDir: "{{ toolsDir }}/DETECTION/rules"
       OSINT_toolsDir: "{{ toolsDir }}/OSINT"
 
 
@@ -37,11 +38,14 @@
    - include: tasks/docker.yml
    - include: tasks/secubian-jupyternotebook.yml
    - include: tasks/sphinx-wiki.yml
+   - include: tasks/detection/rules/sigma.yml
+   - include: tasks/detection/rules/yara.yml
    #- include: tasks/forensic/bulk_extractor.yml
    - include: tasks/forensic/capa.yml
    - include: tasks/forensic/CIRCLE_Hashlookup.yml
    - include: tasks/forensic/didierStevens.yml
    - include: tasks/forensic/IRISWeb.yml
+   - include: tasks/forensic/log2timeline.yml
    - include: tasks/forensic/timesketch.yml
    - include: tasks/forensic/velociraptor.yml
    - include: tasks/forensic/volatility.yml
@@ -72,10 +76,12 @@
      become_user: "{{ ansible_user }}"
      ansible.builtin.pip:
        name: 
+         - capstone
          - eml_parser
          - extract-msg
          - msg_parser[rtf]
          - oletools
+         - peepdf
          - pillow
        executable: pip3
 
@@ -193,13 +199,6 @@
        regexp: "^alias {{ item.alias }}="
      with_items:
        - { alias: "ll", commandLine: "ls -la" }
-       - { alias: "dockerplaso", commandLine: "sudo docker run --rm -v $(pwd):/data -w /data log2timeline/plaso psort"}
-       - { alias: "dockerl2t", commandLine: "sudo docker run --rm -v $(pwd):/data -w /data log2timeline/plaso log2timeline"}
-
-   - name: Docker build
-     ansible.builtin.shell: docker pull {{ item.docker }};
-     with_items:
-       - { docker: "log2timeline/plaso" }
 
    - name: Docker disable auto start all containers
      ansible.builtin.shell: docker update --restart=no $(docker ps -a -q) 2>/dev/null;

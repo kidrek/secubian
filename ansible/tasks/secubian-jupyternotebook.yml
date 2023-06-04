@@ -6,6 +6,7 @@
       - scipy
       - numpy
       - matplotlib
+      - azure-mgmt-resource
       - msticpy
       - msticpy[azure]
       - pandas

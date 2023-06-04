@@ -107,7 +107,7 @@
         }
       },
       "Homepage": {
-        "StartPage": "file:///home/{{ user }}/Desktop/Documentation/wiki/build/html/index.html"
+        "StartPage": "file://{{ documentationDir }}/wiki/build/html/index.html"
       },
       "NewTabPage": false,
       "NoDefaultBookmarks": true,

@@ -122,7 +122,7 @@
 
 - name: Gnome - Set/Remove favorites apps from Dash-panel
   become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/shell/favorite-apps" value="['firefox-esr.desktop', 'terminator.desktop', 'code.desktop', 'gedit.desktop','org.keepassxc.KeePassXC.desktop', 'zulucrypt-gui.desktop', 'org.remmina.Remmina.desktop','sqlitebrowser.desktop']"
+  dconf: key="/org/gnome/shell/favorite-apps" value="['firefox-esr.desktop','terminator.desktop','code.desktop','gedit.desktop','org.keepassxc.KeePassXC.desktop','zulucrypt-gui.desktop','org.remmina.Remmina.desktop','sqlitebrowser.desktop']"
 
 - name: Gnome Application Theme vimix-gtk-themes - Clone a github repository
   become_user: "{{ ansible_user }}"
@@ -168,6 +168,10 @@
 - name: Gnome - Disable automount-open
   become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/desktop/media-handling/automount-open" value="false"
+
+- name: Gnome - Enable mouse tap-to-click
+  become_user: "{{ ansible_user }}"
+  dconf: key="/org/gnome/desktop/peripherals/touchpad/tap-to-click" value="true"
 
 - name: GEdit - Change highlight current line theme
   lineinfile:

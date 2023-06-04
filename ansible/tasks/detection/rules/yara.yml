@@ -26,4 +26,4 @@
     dest: "{{ DETECTION_rulesDir }}/yara/malware_yara_rules.py"
 
 - name: Generate one yara rules from downloaded repositories
-  ansible.builtin.shell: "cd {{ DETECTION_rulesDir }}/yara/; python ./malware_yara_rules.py"
+  ansible.builtin.shell: "cd {{ DETECTION_rulesDir }}/yara/; python3 ./malware_yara_rules.py"

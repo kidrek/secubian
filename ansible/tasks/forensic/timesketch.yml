@@ -41,23 +41,42 @@
     - not timesketchDirectory.stat.exists
     - arch == "amd64"
 
-- name: "Timesketch | modify TCP Port"
-  lineinfile:
-    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/config.env"
-    line: 'NGINX_HTTPS_PORT=4431'
-    regexp: "^NGINX_HTTPS_PORT="
-  when: 
-    - not timesketchDirectory.stat.exists
-    - arch == "amd64"
+#- name: "Timesketch | modify TCP Port"
+#  lineinfile:
+#    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/config.env"
+#    line: 'NGINX_HTTPS_PORT=4431'
+#    regexp: "^NGINX_HTTPS_PORT="
+#  when: 
+#    - not timesketchDirectory.stat.exists
+#    - arch == "amd64"
+#
+#- name: "Timesketch | modify TCP Port"
+#  lineinfile:
+#    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/config.env"
+#    line: 'NGINX_HTTP_PORT=8081'
+#    regexp: "^NGINX_HTTP_PORT="
+#  when: 
+#    - not timesketchDirectory.stat.exists
+#    - arch == "amd64"
 
-- name: "Timesketch | modify TCP Port"
-  lineinfile:
-    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/config.env"
-    line: 'NGINX_HTTP_PORT=8081'
-    regexp: "^NGINX_HTTP_PORT="
-  when: 
-    - not timesketchDirectory.stat.exists
-    - arch == "amd64"
+
+#- name: "Timesketch | Find the rule files"
+##  become_user: "{{ ansible_user }}"
+#  ansible.builtin.find:
+#    paths: "{{ DETECTION_rulesDir }}/sigma/sigmaHQ/rules/windows"
+#    recurse: yes
+#    patterns: '.*\.yml'
+#    use_regex: true
+#  register: rulefiles
+
+#- name: "Timesketch | Copy rules to timesketch"
+##  become_user: "{{ ansible_user }}"
+#  ansible.builtin.copy: 
+#    src: "{{ item.path }}"
+#    remote_src: yes
+#    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/etc/timesketch/sigma/rules/"
+#  with_items:
+#    - "{{rulefiles.files}}"
 
 - name: "Timesketch | Add BASH aliases"
   become_user: "{{ ansible_user }}"
@@ -84,7 +103,6 @@
     state: stopped
   loop:
     - "timesketch-web"
-    - "timesketch-web-v2"
     - "timesketch-worker"
     - "opensearch"
     - "postgres"
