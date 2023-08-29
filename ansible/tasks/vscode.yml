@@ -37,7 +37,11 @@
   with_items:
     - { extension: "ms-python.python" }
     - { extension: "hediet.vscode-drawio" }
-
+    - { extension: "ms-toolsai.jupyter" }
+    - { extension: "ms-toolsai.jupyter-keymap" }
+    - { extension: "ms-toolsai.jupyter-renderers" }
+    - { extension: "ms-toolsai.vscode-jupyter-cell-tags" }
+    - { extension: "ms-toolsai.vscode-jupyter-slideshow" }
 
 - name: "Visual Studio Code | Install jupyter package"
   become_user: "{{ ansible_user }}"
