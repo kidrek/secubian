@@ -13,3 +13,10 @@
   #  owner: root 
   #  group: root 
   #  mode: 755
+
+- name: "Firefox | set permissions"
+  ansible.builtin.file:
+    path: /usr/share/firefox-esr/distribution/policies.json
+    owner: root
+    group: root
+    mode: '1755'
