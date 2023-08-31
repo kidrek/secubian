@@ -1,0 +1,10 @@
+- name: "Suricata | installation"
+  apt:
+    name: 
+      - suricata
+      - suricata-update
+    state: latest
+    update_cache: true
+
+- name: "Suricata | update rules"
+  ansible.builtin.shell: suricata-update; 
