@@ -22,7 +22,7 @@
   when: gnomeStatus is succeeded
 
 - name: Gnome - Copy wallpaper file
-  copy: src=../../img/secubian_wallpaper.png dest=/home/{{ ansible_user }}/.wallpaper_secubian.png owner="{{ ansible_user }}" group="{{ ansible_user }}" mode=600
+  copy: src=../files/secubian_wallpaper.png dest=/home/{{ ansible_user }}/.wallpaper_secubian.png owner="{{ ansible_user }}" group="{{ ansible_user }}" mode=600
 
 - name: Gnome - Set Desktop Wallpaper
   become_user: "{{ ansible_user }}"
