@@ -184,7 +184,7 @@
 
    - name: Download SANS Documentation
      copy: 
-      src: "/files/documentation/" 
+      src: "./files/documentation/" 
       dest: "{{ documentationDir }}" 
       owner: "{{ ansible_user }}" 
       group: "{{ ansible_user }}" 
