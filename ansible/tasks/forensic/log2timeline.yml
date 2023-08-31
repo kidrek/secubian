@@ -1,0 +1,31 @@
+
+- name: "Log2timeline | Add bash aliases"
+  become_user: "{{ ansible_user }}"
+  lineinfile:
+    dest: "~/.bash_aliases"
+    create: yes
+    mode: 0644
+    line: "alias {{ item.alias }}='{{ item.commandLine }}'"
+    regexp: "^alias {{ item.alias }}="
+  with_items:
+    - { alias: "dockerplaso", commandLine: "sudo docker run --rm -v $(pwd):/data -w /data log2timeline/plaso psort"}
+    - { alias: "dockerl2t", commandLine: "sudo docker run --rm -v $(pwd):/data -w /data log2timeline/plaso log2timeline"}
+
+- name: "Log2timeline | Docker build"
+  ansible.builtin.shell: docker pull {{ item.docker }};
+  with_items:
+    - { docker: "log2timeline/plaso" }
+
+- name: "Log2timeline | create directory if they don't exist"
+  file:
+    path: "{{ DFIR_toolsDir }}/log2timeline/"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0775
+
+- name: "Log2timeline | Download windows filter"
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/mark-hallman/plaso_filters/44f880b1585b1ca369aa132de3a89ee60e0522ea/filter_windows.txt
+    dest: "{{ DFIR_toolsDir }}/log2timeline/filter_windows.txt"
+    mode: '0440'
