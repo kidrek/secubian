@@ -40,6 +40,7 @@
    - include: tasks/sphinx-wiki.yml
    - include: tasks/detection/rules/sigma.yml
    - include: tasks/detection/rules/yara.yml
+   - include: tasks/detection/suricata.yml
    #- include: tasks/forensic/bulk_extractor.yml
    - include: tasks/forensic/capa.yml
    - include: tasks/forensic/CIRCLE_Hashlookup.yml
@@ -183,7 +184,7 @@
 
    - name: Download SANS Documentation
      copy: 
-      src: "../documentation/" 
+      src: "/files/documentation/" 
       dest: "{{ documentationDir }}" 
       owner: "{{ ansible_user }}" 
       group: "{{ ansible_user }}" 
@@ -209,12 +210,13 @@
    - name: Debian upgrade
      ansible.builtin.shell: apt update; apt upgrade -y;
 
-   - name: upload cases
-     copy: 
-      src: "/Users/kidrek/SynologyDrive/00_Cybersecurity/00_projects/202302_secubian_jupyternotebook/dfir/payloads_and_dumps" 
-      dest: "{{ casesDir }}" 
-      owner: "{{ ansible_user }}" 
-      group: "{{ ansible_user }}" 
-      mode: 600
-     tags: 
-       - dumps
+   ## DEV
+   #- name: upload cases
+   #  copy: 
+   #   src: "/Users/kidrek/SynologyDrive/00_Cybersecurity/00_projects/202302_secubian_jupyternotebook/dfir/payloads_and_dumps" 
+   #   dest: "{{ casesDir }}" 
+   #   owner: "{{ ansible_user }}" 
+   #   group: "{{ ansible_user }}" 
+   #   mode: 600
+   #  tags: 
+   #    - dumps
