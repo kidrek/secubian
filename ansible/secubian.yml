@@ -157,7 +157,7 @@
          - hashcat
          - john
          - macchanger
-         - nikto
+         #- nikto         # not in default debian repository
          - proxychains
          - proxychains4
          - socat
@@ -203,7 +203,8 @@
 
    - name: Docker disable auto start all containers
      ansible.builtin.shell: docker update --restart=no $(docker ps -a -q) 2>/dev/null;
-
+     ignore_errors: true
+     
    #- name: Debian Backports upgrade
    #  ansible.builtin.shell: apt update; apt upgrade -t bullseye-backports -y;
 
