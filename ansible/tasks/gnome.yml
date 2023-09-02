@@ -177,6 +177,10 @@
   become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/nautilus/preferences/default-folder-viewer" value="'list-view'"
 
+- name: Gnome - Sort Directories first
+  become_user: "{{ ansible_user }}"
+  dconf: key="/org/gnome/nautilus/preferences/sort-directories-first" value="true"
+
 - name: Gnome - Set default view columns in nautilus
   become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/nautilus/list-view/default-visible-columns" value="['name', 'size', 'type', 'date_modified', 'permissions', 'owner', 'group']"
