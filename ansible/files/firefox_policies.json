@@ -1,5 +1,7 @@
 {
     "policies": {
+      "AppAutoUpdate": true,
+      "BackgroundAppUpdate": true,
       "DisableFeedbackCommands": true,
       "DisableFirefoxAccounts": true,
       "DisableFirefoxStudies": true,
@@ -24,6 +26,15 @@
           "url": "file://{{ documentationDir }}/wiki/build/html/index.html"
         },
         {
+          "name": "Common tools",
+          "children": [
+            {
+              "url": "https://gchq.github.io/CyberChef/",
+              "name": "Cyberchef"
+            }
+          ]
+        },
+        {
           "name": "DFIR",
           "children": [
             {
@@ -45,7 +56,7 @@
               ]
             },
             {
-              "name": "Outils - OnPrem'",
+              "name": "Outils - Offline'",
               "children": [
                 {
                   "url": "http://127.0.0.1/",
@@ -59,6 +70,66 @@
                 {
                   "url": "https://www.incidentresponse.org/playbooks/",
                   "name": "Incident Response - Playbooks"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "OSINT",
+          "children": [
+            {
+              "name": "OPSEC / Domaine, ip",
+              "children": [
+                {
+                  "url": "https://start.me/p/BnrKpe/02-opsec-online-privacy",
+                  "name": "NSCO (StartPage)"
+                },
+                {
+                  "url": "https://networksdb.io",
+                  "name": "Networks DB"
+                },
+                {
+                  "url": "https://metadefender.opswat.com",
+                  "name": "OPSWAT"
+                },
+                {
+                  "url": "https://www.shodan.io",
+                  "name": "Shodan"
+                },
+                {
+                  "url": "https://web-check.xyz",
+                  "name": "Web Check"
+                }
+              ]
+            },
+            {
+              "name": "IMINT / Image investigation",
+              "children": [
+                {
+                  "url": "https://start.me/p/gyEalK/06-imint-vi-geoint",
+                  "name": "NSCO (StartPage)"
+                },
+                {
+                  "url": "https://pimeyes.com/en",
+                  "name": "PimEyes"
+                },
+                {
+                  "url": "https://translate.google.com/translate?sl=auto&tl=en&u=https://search4faces.com/%23",
+                  "name": "Search4Faces"
+                }
+              ]
+            },
+            {
+              "name": "SOCMINT / Social investigation",
+              "children": [
+                {
+                  "url": "https://start.me/p/ADr4qn/05-socmint",
+                  "name": "NSCO (StartPage)"
+                },
+                {
+                  "url": "https://onemilliontweetmap.com/?center=25.505,-0.09&zoom=2&search=&timeStep=0&timeSelector=0&hashtag1=&hashtag2=sad&sidebar=yes&hashtagBattle=0&timeRange=0&timeRange=25&heatmap=0&sun=0&cluster=1",
+                  "name": "Tweet MAP"
                 }
               ]
             }
