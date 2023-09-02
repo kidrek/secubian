@@ -173,6 +173,14 @@
   become_user: "{{ ansible_user }}"
   dconf: key="/org/gnome/desktop/peripherals/touchpad/tap-to-click" value="true"
 
+- name: Gnome - Change default view in nautilus
+  become_user: "{{ ansible_user }}"
+  dconf: key="/org/gnome/nautilus/preferences/default-folder-viewer" value="list-view"
+
+- name: Gnome - Change sort in nautilus
+  become_user: "{{ ansible_user }}"
+  dconf: key="/org/gnome/nautilus/preferences/default-sort-order" value="type"
+
 - name: GEdit - Change highlight current line theme
   lineinfile:
     dest: "/usr/share/gtksourceview-4/styles/tango.xml"
