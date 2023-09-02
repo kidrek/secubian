@@ -3,11 +3,6 @@
   hosts: all
   become: yes
   
-  pre_tasks:
-    - name: update repositories
-      apt: update_cache=yes
-      changed_when: False
-
   vars:
       casesDir: "/home/{{ ansible_user }}/Documents/Cases"
       toolsDir: "/home/{{ ansible_user }}/Documents/Tools"
@@ -18,6 +13,9 @@
 
 
   tasks: 
+   - name: Debian upgrade
+     ansible.builtin.shell: apt update; apt upgrade -y;
+
    - name: create directory if they don't exist
      file:
        path: "{{ item }}"
@@ -28,7 +26,7 @@
      loop:
        - "{{ casesDir }}"
        - "{{ DFIR_toolsDir }}"
-       - "{{ OSINT_toolsDir }}"
+       - "{{ OSINT_toolsDir }}"
 
    - include: tasks/requirements_packages.yml
    - include: tasks/python2.yml
@@ -188,7 +186,7 @@
       dest: "{{ documentationDir }}" 
       owner: "{{ ansible_user }}" 
       group: "{{ ansible_user }}" 
-      mode: 600
+      mode: 0644
 
    - name: "Bash | Add aliases"
      become_user: "{{ ansible_user }}"
@@ -205,11 +203,6 @@
      ansible.builtin.shell: docker update --restart=no $(docker ps -a -q) 2>/dev/null;
      ignore_errors: true
      
-   #- name: Debian Backports upgrade
-   #  ansible.builtin.shell: apt update; apt upgrade -t bullseye-backports -y;
-
-   - name: Debian upgrade
-     ansible.builtin.shell: apt update; apt upgrade -y;
 
    ## DEV
    #- name: upload cases
