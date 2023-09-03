@@ -72,7 +72,8 @@
 
 - name: "Sphinx documentation | remove old wiki source"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: mv /tmp/wiki/* {{ documentationDir }}/wiki/source/
+  ansible.builtin.shell: mv /tmp/wiki/* {{ documentationDir }}/wiki/source/; mv /tmp/wiki/.* {{ documentationDir }}/wiki/source/
+  ignore_errors: true
 
 - name: "Sphinx documentation | remove temp wiki"
   ansible.builtin.shell: rm -rf /tmp/wiki
@@ -80,3 +81,12 @@
 - name: "Sphinx documentation | generate html wiki"
   become_user: "{{ ansible_user }}"
   shell: "cd {{ documentationDir }}/wiki && . __env__/bin/activate && make html"
+
+- name: "Bash | Add alias"
+  become_user: "{{ ansible_user }}"
+  lineinfile:
+    dest: "~/.bash_aliases"
+    create: yes
+    mode: 0644
+    line: "alias update-wiki='cd {{ documentationDir }}/wiki/source; git pull; cd -; cd {{ documentationDir }}/wiki/ && . __env__/bin/activate && make html; cd -'"
+    regexp: "^alias update-wiki="
