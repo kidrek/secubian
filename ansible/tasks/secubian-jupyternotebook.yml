@@ -24,3 +24,12 @@
   with_items:
     - { repo: "https://github.com/kidrek/secubian-JupyterNotebook.git", dest: "{{ documentationDir }}/JupyterNotebook" }
   tags: jupyter
+
+- name: "Bash | Add alias"
+  become_user: "{{ ansible_user }}"
+  lineinfile:
+    dest: "~/.bash_aliases"
+    create: yes
+    mode: 0644
+    line: "alias update-jupyter-notebook='cd {{ documentationDir }}/JupyterNotebook; git pull'"
+    regexp: "^alias update-jupyter-notebook="
