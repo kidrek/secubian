@@ -187,6 +187,10 @@
               "url": "https://www.ired.team"
             },
             {
+              "name": "PayloadAllTheThings",
+              "url": "https://swisskyrepo.github.io/PayloadsAllTheThings/"
+            },
+            {
               "name": "The hacker recipes (Documentation)",
               "url": "https://www.thehacker.recipes"
             }
