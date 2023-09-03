@@ -26,6 +26,22 @@
       - zulucrypt-gui
     state: present
 
+- name: Create Terminator config directory if it doesn't exist
+  file:
+    path: "/home/{{ ansible_user }}/.config/terminator/"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0755
+
+- name: Copy Terminator config
+  copy:
+   src: "./files/terminator_config"
+   dest: "/home/{{ ansible_user }}/.config/terminator/config"
+   owner: "{{ ansible_user }}"
+   group: "{{ ansible_user }}"
+   mode: 0644
+
 - name: remove old OpenSSL directory
   file:
     state: absent
