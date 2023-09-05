@@ -17,7 +17,7 @@
 
 - name: "OpenSearch | Apt source"
   ansible.builtin.apt_repository:
-    repo: item.repo
+    repo: {{ item.repo }}
     state: present
   with_items:
     - { repo: "deb [signed-by=/usr/share/keyrings/opensearch-keyring] https://artifacts.opensearch.org/releases/bundle/opensearch/2.x/apt stable main" }
@@ -35,8 +35,8 @@
 - name: "OpenSearch | Modify configuration"
   ansible.builtin.lineinfile:
     path: /etc/opensearch/opensearch.yml
-    regexp: item.regex
-    line: item.value
+    regexp: {{ item.regex }}
+    line: {{ item.value }}
   with_items:
     - { regex: '^network\.host', value: 'network.host: 0.0.0.0' }
     - { regex: '^discovery\.type', value: 'discovery.type: single-node' }
@@ -45,8 +45,8 @@
 - name: "OpenSearch Dashboard | Modify configuration"
   ansible.builtin.lineinfile:
     path: /etc/opensearch-dashboards/opensearch_dashboards.yml
-    regexp: item.regex
-    line: item.value
+    regexp: {{ item.regex }}
+    line: {{ item.value }}
   with_items:
     - { regex: '^server\.port', value: 'server.port: 5601' }
     - { regex: '^server\.host', value: 'server.host: 0.0.0.0' }
