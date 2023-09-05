@@ -1,0 +1,52 @@
+# OpenSearch
+
+- name: "OpenSearch | Update cache and Install requirements"
+  ansible.builtin.apt:
+    name:
+      - lsb-release 
+      - ca-certificates 
+      - curl 
+      - gnupg2
+    state: latest
+    update_cache: true
+
+- name: "OpenSearch | Add GPG key"
+  ansible.builtin.get_url:
+    url: https://artifacts.opensearch.org/publickeys/opensearch.pgp
+    dest: /usr/share/keyrings/opensearch-keyring
+
+- name: "OpenSearch | Apt source"
+  ansible.builtin.apt_repository:
+    repo: 
+    state: present
+  with_items:
+    - { repo: "deb [signed-by=/usr/share/keyrings/opensearch-keyring] https://artifacts.opensearch.org/releases/bundle/opensearch/2.x/apt stable main" }
+    - { repo: "deb [signed-by=/usr/share/keyrings/opensearch-keyring] https://artifacts.opensearch.org/releases/bundle/opensearch-dashboards/2.x/apt stable main" }
+
+## Default login/mdp admin/admin
+- name: "OpenSearch | Update cache and Install OpenSearch"
+  ansible.builtin.apt:
+    name:
+      - opensearch
+      - opensearch-dashboards
+    state: latest
+    update_cache: true
+
+- name: "OpenSearch | Modify configuration"
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch/opensearch.yml
+    regexp: item.regex
+    line: item.value
+  with_items:
+    - { regex: '^network\.host', value: 'network.host: 0.0.0.0' }
+    - { regex: '^discovery\.type', value: 'discovery.type: single-node' }
+    - { regex: '^plugins\.security\.disabled', value: 'plugins.security.disabled: false' }
+
+- name: "OpenSearch Dashboard | Modify configuration"
+  ansible.builtin.lineinfile:
+    path: /etc/opensearch-dashboards/opensearch_dashboards.yml
+    regexp: item.regex
+    line: item.value
+  with_items:
+    - { regex: '^server\.port', value: 'server.port: 5601' }
+    - { regex: '^server\.host', value: 'server.host: 0.0.0.0' }

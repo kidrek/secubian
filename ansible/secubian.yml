@@ -45,6 +45,7 @@
    - include: tasks/forensic/didierStevens.yml
    - include: tasks/forensic/IRISWeb.yml
    - include: tasks/forensic/log2timeline.yml
+   - include: tasks/forensic/opensearch.yml
    - include: tasks/forensic/timesketch.yml
    - include: tasks/forensic/velociraptor.yml
    - include: tasks/forensic/volatility.yml
@@ -63,6 +64,7 @@
      ansible.builtin.pip:
        name: 
          - dissect
+         - docx2txt
          - evtxtract
          - lxml
          - officedissector
