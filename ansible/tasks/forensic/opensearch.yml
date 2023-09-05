@@ -17,7 +17,7 @@
 
 - name: "OpenSearch | Apt source"
   ansible.builtin.apt_repository:
-    repo: 
+    repo: item.repo
     state: present
   with_items:
     - { repo: "deb [signed-by=/usr/share/keyrings/opensearch-keyring] https://artifacts.opensearch.org/releases/bundle/opensearch/2.x/apt stable main" }
