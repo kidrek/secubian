@@ -1,6 +1,6 @@
 # SECUBIAN - Initialisation
 
-SECUBIAN se déploie aisément sur une installation récente d'un système Linux Debian, via la solution Ansible.
+SECUBIAN se déploie aisément sur une installation récente d'un système Linux Debian (actuellemnet v11), via la solution Ansible.
 
 
 ## Déploiement
