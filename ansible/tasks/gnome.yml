@@ -32,7 +32,7 @@
   become_user: "{{ ansible_user }}"
   dconf:
     key: "/org/gnome/shell/enabled-extensions"
-    value: "['dash-to-panel@jderose9.github.com', 'desktop-icons@csoriano']"
+    value: "['desktop-icons@csoriano', 'places-menu@gnome-shell-extensions.gcampax.github.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'workspace-indicator@gnome-shell-extensions.gcampax.github.com', 'dash-to-panel@jderose9.github.com', 'apps-menu@gnome-shell-extensions.gcampax.github.com', 'auto-move-windows@gnome-shell-extensions.gcampax.github.com']"
 
 - name: Gnome - Copy wallpaper file
   copy: src=../files/secubian_wallpaper.png dest=/home/{{ ansible_user }}/.wallpaper_secubian.png owner="{{ ansible_user }}" group="{{ ansible_user }}" mode=600
