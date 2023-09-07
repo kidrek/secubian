@@ -10,7 +10,7 @@
       DFIR_toolsDir: "{{ toolsDir }}/DFIR"
       DETECTION_rulesDir: "{{ toolsDir }}/DETECTION/rules"
       OSINT_toolsDir: "{{ toolsDir }}/OSINT"
-
+      docker_compose_version: "v2.11.1"
 
   tasks: 
    - name: Debian upgrade
