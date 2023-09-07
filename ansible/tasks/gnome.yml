@@ -28,17 +28,11 @@
       - gnome-shell-extension-desktop-icons
     state: present
 
-#- name: Reboot a slow machine that might have lots of updates to apply
-#  ansible.builtin.reboot:
-#    reboot_timeout: 3600
-#  when: gnomeStatus is succeeded
-
 - name: Enable gnome shell extensions
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: gnome-extensions enable {{ item.name }}
-  with_items:
-    - { name: "dash-to-panel@jderose9.github.com" }
-    - { name: "desktop-icons@csoriano" }
+  dconf:
+    key: "/org/gnome/shell/enabled-extensions"
+    value: "['dash-to-panel@jderose9.github.com', 'desktop-icons@csoriano']"
 
 - name: Gnome - Copy wallpaper file
   copy: src=../files/secubian_wallpaper.png dest=/home/{{ ansible_user }}/.wallpaper_secubian.png owner="{{ ansible_user }}" group="{{ ansible_user }}" mode=600
