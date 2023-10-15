@@ -22,7 +22,7 @@
     dest: "{{ item.dest }}"
     recursive: yes
   with_items:
-    - { repo: "https://github.com/kidrek/secubian-JupyterNotebook.git", dest: "{{ documentationDir }}/JupyterNotebook" }
+    - { repo: "https://github.com/kidrek/secubian-JupyterNotebook.git", dest: "{{ playbooksDir }}/JupyterNotebook" }
   tags: jupyter
 
 - name: "Bash | Add alias"
@@ -31,5 +31,5 @@
     dest: "~/.bash_aliases"
     create: yes
     mode: 0644
-    line: "alias update-jupyter-notebook='cd {{ documentationDir }}/JupyterNotebook; git pull'"
+    line: "alias update-jupyter-notebook='cd {{ playbooksDir }}/JupyterNotebook; git pull'"
     regexp: "^alias update-jupyter-notebook="
