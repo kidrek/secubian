@@ -1,0 +1,12 @@
+
+- name : "Debian - Disable required services"
+  ansible.builtin.service:
+    name: "{{ item.name }}"
+    state: stopped
+    enabled: false
+  with_items:
+    - { name: "avahi-daemon" }
+    - { name: "cups" }
+    - { name: "cups-browsed" }
+    - { name: "exim4" }
+    - { name: "ssh" }
