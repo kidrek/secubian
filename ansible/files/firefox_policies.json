@@ -210,30 +210,37 @@
       "// Check Geko ID": "",
       "ExtensionSettings": {
         "{b86e4813-687a-43e6-ab65-0bde4ab75758}": {
+            "// Extension : LocalCDN",
             "install_url": "https://addons.mozilla.org/firefox/downloads/file/4041581",
             "installation_mode": "normal_installed"
         },          
         "CookieAutoDelete@kennydo.com": {
+            "// Extension : CookieAutoDelete",
             "install_url": "https://addons.mozilla.org/firefox/downloads/file/4040738",
             "installation_mode": "normal_installed"
         },  
         "@testpilot-containers": {
+          "// Extension : Firefox Multi-Account Containers",
           "install_url": "https://addons.mozilla.org/firefox/downloads/file/4038684",
           "installation_mode": "normal_installed"
         },
         "foxyproxy@eric.h.jung": {
+          "// Extension : FoxyProxy",
           "install_url": "https://addons.mozilla.org/firefox/downloads/file/3616824",
           "installation_mode": "normal_installed"
         },
         "uBlock0@raymondhill.net": {
+          "// Extension : uBlock",
           "install_url": "https://addons.mozilla.org/firefox/downloads/file/4028976",
           "installation_mode": "normal_installed"
         },
         "{0b457cAA-602d-484a-8fe7-c1d894a011ba}": {
+          "// Extension : Fireshot",
           "install_url": "https://addons.mozilla.org/firefox/downloads/file/4053938",
           "installation_mode": "normal_installed"
         },
         "{78eea43d-42ab-4410-98b9-de9d50ddb1a3}": {
+          "// Extension : Sputnik",
           "install_url": "https://addons.mozilla.org/firefox/downloads/file/4021835",
           "installation_mode": "normal_installed"
         }
