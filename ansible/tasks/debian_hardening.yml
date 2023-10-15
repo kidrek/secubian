@@ -4,6 +4,7 @@
     name: "{{ item.name }}"
     state: stopped
     enabled: false
+  ignore_errors: true
   with_items:
     - { name: "avahi-daemon" }
     - { name: "cups" }
