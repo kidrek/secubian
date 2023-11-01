@@ -1,0 +1,11 @@
+# ============================== Filebeat inputs ==============================
+
+filebeat.config.inputs:
+  enabled: true
+  path: ${path.config}/inputs.d/*.yml
+
+#----------------------------- Logstash output --------------------------------
+
+output.logstash:
+  hosts: ["localhost:5044"]
+

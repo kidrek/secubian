@@ -1,0 +1,12 @@
+- type: log
+  enabled: true
+  paths:
+    - /home/secubian/Documents/Cases/*/*
+    - /home/secubian/Documents/Cases/*
+  include_files: [ '\.json$' ]
+  close_inactive: 5m
+  fields_under_root: true
+  fields:
+    type: secubianDFIR
+    file.type: json
+
