@@ -2,7 +2,7 @@
 
 - name: "OpenSearch tool | copy csv_to_json python script to CASES directort"
   ansible.builtin.template: 
-    src  : ../files/csv_to_json.py 
+    src  : ../../files/csv_to_json.py 
     dest : "{{ casesDir }}"
 
 - name: "OpenSearch | Update cache and Install requirements"
