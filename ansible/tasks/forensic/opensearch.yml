@@ -90,8 +90,8 @@
     src  : "{{ item.src }}"
     dest : "{{ item.dst }}"
   with_items:
-    - { src: "../files/filebeat/filebeat.yml", dst: "/etc/filebeat/filebeat.yml" }
-    - { src: "../files/filebeat/input_dfir.yml", dst: "/etc/filebeat/inputs.d/dfir.yml" }
+    - { src: "../../files/filebeat/filebeat.yml", dst: "/etc/filebeat/filebeat.yml" }
+    - { src: "../../files/filebeat/input_dfir.yml", dst: "/etc/filebeat/inputs.d/dfir.yml" }
 
 - name: "OpenSearch | Enable Filebeat service"
   ansible.builtin.systemd:
