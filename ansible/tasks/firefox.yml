@@ -1,22 +1,37 @@
+- name: Set package and profile path for Debian 
+  set_fact:
+    firefox_package: "firefox-esr"
+    firefox_policies_path: "/usr/share/firefox-esr/distribution/"
+  when: (ansible_distribution == 'Debian') 
+
+- name: Set package and profile path for Ubuntu 
+  set_fact:
+    firefox_package: "firefox"
+    firefox_policies_path: "/etc/firefox/policies/"
+  when: (ansible_distribution == 'Ubuntu') 
+
 
 - name: "Firefox | Installation"
   apt:
-    name: 
-      - firefox-esr
+    name: "{{ firefox_package }}"
     state: present
+
+- name: create directory if it doesn't exist
+  file:
+    path: "{{ firefox_policies_path }}"
+    state: directory
+    mode: 0775
 
 - name: "Firefox | Copy user preferences"
   #copy: src=../files/firefox_policies.json dest=/usr/share/firefox-esr/distribution/policies.json owner=root group=root mode=755
   ansible.builtin.template: 
     src  : ../files/firefox_policies.json 
-    dest : /usr/share/firefox-esr/distribution/policies.json 
-  #  owner: root 
-  #  group: root 
-  #  mode: 755
+    dest : "{{ firefox_policies_path }}/policies.json"
+  # dest : /usr/share/firefox-esr/distribution/policies.json 
 
 - name: "Firefox | set permissions"
   ansible.builtin.file:
-    path: /usr/share/firefox-esr/distribution/policies.json
+    path: "{{ firefox_policies_path }}/policies.json"
     owner: root
     group: root
     mode: '1755'
