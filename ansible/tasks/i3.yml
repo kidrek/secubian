@@ -1,0 +1,46 @@
+- name: "i3 | Install"
+  apt:
+    name: 
+      - xorg 
+      - lightdm 
+      - lightdm-gtk-greeter 
+      - i3-wm 
+      - i3status 
+      - i3blocks 
+      - dmenu 
+      - terminator
+      - thunar
+      - feh
+      - libxrandr2
+      - picom
+      - fonts-font-awesome
+    state: present
+
+- name: "i3 | Enable lightdm"
+  ansible.builtin.service:
+    name: lightdm
+    enabled: yes
+  ignore_errors: true
+
+- name: "i3 | Remove i3lock package"
+  ansible.builtin.apt:
+    name: i3lock
+    state: absent
+
+- name: "i3 | Copy wallpaper file"
+  become_user: "{{ ansible_user }}"
+  copy: 
+    src : ../files/secubian_wallpaper.png 
+    dest : /home/{{ ansible_user }}/.wallpaper_secubian.png 
+
+- name: "i3 | Copy user preferences"
+  become_user: "{{ ansible_user }}"
+  file:
+    path: /home/{{ ansible_user }}/.config/i3/
+    state: directory
+
+- name: "i3 | Copy user preferences"
+  become_user: "{{ ansible_user }}"
+  copy: 
+    src  : ../files/i3/config 
+    dest : /home/{{ ansible_user }}/.config/i3/config 
