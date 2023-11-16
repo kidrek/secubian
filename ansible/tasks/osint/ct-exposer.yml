@@ -13,4 +13,7 @@
 
 - name: "CT-EXPOSER | Python dependencies installation"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: cd {{ OSINT_toolsDir }}/ct-exposer; pip3 install -r requirements.txt;
+  ansible.builtin.pip:
+    requirements: "{{ OSINT_toolsDir }}/ct-exposer/requirements.txt"
+    virtualenv: "$HOME/.pyenv/versions/3.9.18"
+    virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv 3.9.18"
