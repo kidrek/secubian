@@ -1,10 +1,12 @@
 
 
 - name: "FLARE CAPA | Install python3 module"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
     name: 
       - flare-capa
-    executable: pip3
+    virtualenv: "$HOME/.pyenv/versions/3.9.18"
+    virtualenv_command: $HOME/.pyenv/bin/pyenv virtualenv 3.9.18
 
 - name: "FLARE CAPA | Clone git CAPA rules repos"
   become_user: "{{ ansible_user }}"
