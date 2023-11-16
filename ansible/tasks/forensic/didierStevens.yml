@@ -1,4 +1,6 @@
-
+- name: "DidierStevensSuite | set PythonVersion"
+  ansible.builtin.set_fact:
+    python_version : "3.9.18" 
 
 - name: "DidierStevensSuite | Download repository"
   become_user: "{{ ansible_user }}"
@@ -11,10 +13,8 @@
   with_items:
     - { repo: "https://github.com/DidierStevens/DidierStevensSuite.git", dest: "{{ DFIR_toolsDir }}/DidierStevensSuite" }
 
-
 - name: "DidierStevensSuite | set executable"
   ansible.builtin.shell: chmod +x {{ DFIR_toolsDir }}/DidierStevensSuite/*.py
-
 
 - name: "DidierStevensSuite | Bash - Add aliases"
   become_user: "{{ ansible_user }}"
@@ -24,3 +24,13 @@
     mode: 0644
     line: "export PATH=$PATH:{{ DFIR_toolsDir }}/DidierStevensSuite"
     regexp: "^export PATH=$PATH:{{ DFIR_toolsDir }}/DidierStevensSuite"
+
+- name: "DidierStevensSuite | Install required python modules"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.pip:
+    name: 
+      - pyzipper
+      - pycryptodome
+    virtualenv: "$HOME/.pyenv/versions/{{ python_version }}"
+    virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv {{ python_version }}"
+
