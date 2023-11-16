@@ -9,6 +9,13 @@
     state: present
   register: gnomeStatus
 
+- name: Install Gnome desktop
+  apt:
+    name: 
+      - gnome-shell-extension-dashtodock
+    state: present
+  when: ansible_distribution == 'Debian'
+
 - name: Start gnome display manager service
   ansible.builtin.service:
     name: gdm
@@ -21,18 +28,16 @@
     state: started
     enabled: yes
 
-- name: Install Gnome Addons
-  apt:
-    name:
-      - gnome-shell-extension-dash-to-panel 
-      - gnome-shell-extension-desktop-icons
-    state: present
+- name: Gnome - Download bottompanel extension
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.shell: rm -rf ~/.local/share/gnome-shell/extensions/; git clone https://github.com/Thoma5/gnome-shell-extension-bottompanel.git; mv gnome-shell-extension-bottompanel ~/.local/share/gnome-shell/extensions/
+  ignore_errors: true
 
 - name: Enable gnome shell extensions
   become_user: "{{ ansible_user }}"
   dconf:
     key: "/org/gnome/shell/enabled-extensions"
-    value: "['desktop-icons@csoriano', 'places-menu@gnome-shell-extensions.gcampax.github.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'workspace-indicator@gnome-shell-extensions.gcampax.github.com', 'dash-to-panel@jderose9.github.com', 'apps-menu@gnome-shell-extensions.gcampax.github.com', 'auto-move-windows@gnome-shell-extensions.gcampax.github.com']"
+    value: "['dash-to-dock@micxgx.gmail.com', 'desktop-icons@csoriano', 'places-menu@gnome-shell-extensions.gcampax.github.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'workspace-indicator@gnome-shell-extensions.gcampax.github.com', 'dash-to-panel@jderose9.github.com', 'apps-menu@gnome-shell-extensions.gcampax.github.com', 'auto-move-windows@gnome-shell-extensions.gcampax.github.com', 'bottompanel@tmoer93']"
 
 - name: Gnome - Copy wallpaper file
   copy: src=../files/secubian_wallpaper.png dest=/home/{{ ansible_user }}/.wallpaper_secubian.png owner="{{ ansible_user }}" group="{{ ansible_user }}" mode=600
@@ -148,8 +153,6 @@
 - name: Gnome Application Theme vimix-gtk-themes - Installation
   become_user: "{{ ansible_user }}"
   ansible.builtin.shell: chmod +x /tmp/vimix-gtk-themes/install.sh; /tmp/vimix-gtk-themes/install.sh -c dark -t doder -s compact; rm -rf /tmp/vimix-gtk-themes;
-  args:
-    chdir: /tmp/vimix-gtk-themes
 
 - name: Gnome Application Theme - Apply vimix-gtk-themes
   become_user: "{{ ansible_user }}"
@@ -217,3 +220,38 @@
     mode: 0644
     line: '  <!--<style name="current-line-number"         background="aluminium1"/>-->'
     regexp: '^  <style name="current-line-number"         background="aluminium1"/>'
+    
+- name: Gnome - Set dock-position
+  become_user: "{{ ansible_user }}"
+  dconf: key="/org/gnome/shell/extensions/dash-to-dock/{{ item.key }}" value="{{ item.value }}"
+  with_items:
+    - { key: "animate-show-apps", value: "false" }
+    - { key: "dash-max-icon-size", value: "25" }
+    - { key: "dock-position", value: "'LEFT'" }
+    - { key: "isolate-monitors", value: "true" }
+    - { key: "isolate-workspaces", value: "true" }
+    - { key: "multi-monitor", value: "true" }
+    - { key: "running-indicator-style", value: "'DASHES'" }
+    - { key: "show-apps-at-top", value: "true" }
+    - { key: "show-windows-preview", value: "false" }
+
+- name: Gnome - Set Privacy
+  become_user: "{{ ansible_user }}"
+  dconf: key="/org/gnome/desktop/privacy/{{ item.key }}" value="{{ item.value }}"
+  with_items:
+    - { key: "disable-camera", value: "true" }
+    - { key: "disable-microphone", value: "true" }
+    - { key: "hide-identity", value: "true" }
+    - { key: "privacy-screen", value: "true" }
+    - { key: "remember-recent-files", value: "false" }
+    - { key: "report-technical-problems", value: "false" }
+    - { key: "remember-app-usage", value: "false" }
+    - { key: "send-software-usage-stats", value: "false" }
+
+- name: Gnome - Set Security
+  become_user: "{{ ansible_user }}"
+  dconf: key="/org/gnome/desktop/media-handling/{{ item.key }}" value="{{ item.value }}"
+  with_items:
+    - { key: "automount", value: "false" }
+    - { key: "automount-open", value: "false" }
+
