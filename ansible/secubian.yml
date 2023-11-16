@@ -14,7 +14,7 @@
       docker_compose_version: "v2.11.1"
 
   tasks: 
-   - name: Debian upgrade
+   - name: System upgrade
      ansible.builtin.shell: apt update; apt upgrade -y;
 
    - name: create directory if they don't exist
@@ -30,9 +30,10 @@
        - "{{ OSINT_toolsDir }}"
        - "{{ playbooksDir }}"
 
+   - include: tasks/pyenv.yml
    - include: tasks/requirements_packages.yml
-   - include: tasks/python2.yml
    - include: tasks/gnome.yml
+   - include: tasks/i3.yml
    - include: tasks/vscode.yml
    - include: tasks/firefox.yml
    - include: tasks/docker.yml
@@ -41,9 +42,9 @@
    - include: tasks/detection/rules/sigma.yml
    - include: tasks/detection/rules/yara.yml
    - include: tasks/detection/suricata.yml
-   #- include: tasks/forensic/bulk_extractor.yml
+   - include: tasks/forensic/bulk_extractor.yml
    - include: tasks/forensic/capa.yml
-   - include: tasks/forensic/CIRCLE_Hashlookup.yml
+   - include: tasks/forensic/CIRCL_Hashlookup.yml
    - include: tasks/forensic/didierStevens.yml
    - include: tasks/forensic/IRISWeb.yml
    - include: tasks/forensic/log2timeline.yml
@@ -66,7 +67,7 @@
      become_user: "{{ ansible_user }}"
      ansible.builtin.pip:
        name: 
-         - dissect
+         #- dissect
          - docx2txt
          - evtxtract
          - lxml
@@ -87,7 +88,8 @@
          - oletools
          - peepdf
          - pillow
-       executable: pip3
+       virtualenv: "$HOME/.pyenv/versions/3.9.18"
+       virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv 3.9.18"
 
    - name: Install - Forensic Security tools
      apt:
@@ -120,6 +122,7 @@
        accept_hostkey: yes
        dest: "{{ item.dest }}"
        recursive: yes
+       force: yes
      with_items:
        - { repo: "https://github.com/JPCERTCC/LogonTracer.git", dest: "{{ DFIR_toolsDir }}/LogonTracer" }
        - { repo: "https://github.com/countercept/chainsaw.git", dest: "{{ DFIR_toolsDir }}/chainsaw" }
@@ -130,7 +133,8 @@
        name: 
          - scapy
          - setuptools
-       executable: pip3
+       virtualenv: "$HOME/.pyenv/versions/3.9.18"
+       virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv 3.9.18"
 
    - name: Install - Network Security tools
      apt:
@@ -138,7 +142,6 @@
          - network-manager-openvpn-gnome
          - nmap
          - openvpn
-         - python3-scapy
          - tcpdump
          - tshark
          - wireshark
@@ -149,7 +152,10 @@
      ansible.builtin.pip:
        name: 
          - bbot # https://github.com/blacklanternsecurity/bbot
-       executable: pip3
+         - holehe
+         - maigret
+       virtualenv: "$HOME/.pyenv/versions/3.9.18"
+       virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv 3.9.18"
 
    - name: Install - Pentest tools
      apt:
@@ -183,7 +189,8 @@
          - quicksand            # https://github.com/tylabs/quicksand
          #- stringsifter~=2.0    # https://github.com/mandiant/stringsifter  <-- pb durant l'installation
          - XLMMacroDeobfuscator # https://github.com/DissectMalware/XLMMacroDeobfuscator
-       executable: pip3
+       virtualenv: "$HOME/.pyenv/versions/3.9.18"
+       virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv 3.9.18"
 
    - name: Download SANS Documentation
      copy: 
