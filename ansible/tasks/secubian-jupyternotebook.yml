@@ -1,6 +1,9 @@
+- name: "Jupyter Notebook | set PythonVersion"
+  ansible.builtin.set_fact:
+    python_version : "3.9.18" 
 
-
-- name: Install - jupyter Python3 modules
+- name: "Jupyter Notebook | Install jupyter Python3 modules"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
     name: 
       - scipy
@@ -11,7 +14,8 @@
       - msticpy[azure]
       - pandas
       - poetry
-    executable: pip3
+    virtualenv: "$HOME/.pyenv/versions/{{ python_version }}"
+    virtualenv_command: $HOME/.pyenv/bin/pyenv virtualenv {{ python_version }}
   tags: jupyter
 
 - name: "Jupyter Notebook | Download secubian-JupyterNotebook"
@@ -21,9 +25,18 @@
     accept_hostkey: yes
     dest: "{{ item.dest }}"
     recursive: yes
+    force: yes
   with_items:
     - { repo: "https://github.com/kidrek/secubian-JupyterNotebook.git", dest: "{{ playbooksDir }}/JupyterNotebook" }
   tags: jupyter
+
+- name: "Jupyter Notebook | Requirements tools installation"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.pip:
+    requirements: "{{ playbooksDir }}/JupyterNotebook/requirements.txt"
+    virtualenv: "$HOME/.pyenv/versions/{{ python_version }}"
+    virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv {{ python_version }}"
+
 
 - name: "Bash | Add alias"
   become_user: "{{ ansible_user }}"
