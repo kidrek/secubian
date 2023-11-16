@@ -49,4 +49,5 @@
     name: 
       - jupyter
       - pandas
-    executable: pip3
+    virtualenv: "$HOME/.pyenv/versions/3.9.18"
+    virtualenv_command: $HOME/.pyenv/bin/pyenv virtualenv 3.9.18
