@@ -1,0 +1,65 @@
+
+
+- name: "PyEnv | Install requirements"
+  apt:
+    name: 
+      - build-essential 
+      - libssl-dev 
+      - zlib1g-dev 
+      - libbz2-dev 
+      - libreadline-dev 
+      - libsqlite3-dev 
+      - wget 
+      - curl 
+      - llvm 
+      - libncurses5-dev 
+      - libncursesw5-dev 
+      - xz-utils 
+      - tk-dev 
+      - libffi-dev 
+      - liblzma-dev 
+      - python3-openssl 
+      - git
+    state: present
+
+- name: "PyEnv | Check if binary exists"
+  become_user: "{{ ansible_user }}"
+  stat:
+    path: /home/{{ ansible_user }}/.pyenv
+  register: pyEnvFile
+
+- name: "PyEnv | Download binary"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.shell: curl https://pyenv.run | bash
+  when: not pyEnvFile.stat.exists
+
+- name: "PyEnv | Add to .bashrc"
+  become_user: "{{ ansible_user }}"
+  lineinfile:
+    path: "/home/{{ ansible_user }}/.bashrc"
+    line: "{{ item.name }}"
+    insertbefore: EOF
+  with_items:
+    - { name: '## PYENV' }
+    - { name: 'export PYENV_ROOT="$HOME/.pyenv"' }
+    - { name: "command -v pyenv >/dev/null || export PATH=\"$PYENV_ROOT/bin:$PATH\"" }
+    - { name: "eval \"$(pyenv init -)\"" }
+    - { name: "eval \"$(pyenv virtualenv-init -)\"" }
+  when: not pyEnvFile.stat.exists
+
+- name: "PyEnv | Install python 2.7.18"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.shell: . $HOME/.bashrc && $HOME/.pyenv/bin/pyenv install 2.7.18
+  when: not pyEnvFile.stat.exists
+
+- name: "PyEnv | Install python 3.9.18"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.shell: . $HOME/.bashrc && $HOME/.pyenv/bin/pyenv install 3.9.18
+  when: not pyEnvFile.stat.exists
+
+- name: "PyEnv | Set python 3.9.18 as default"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.shell: $HOME/.pyenv/bin/pyenv global 3.9.18
+  when: not pyEnvFile.stat.exists
+
+
