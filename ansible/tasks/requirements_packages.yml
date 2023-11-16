@@ -3,7 +3,7 @@
     name: 
       - cargo
       - feh
-      - git-core
+      - git-all
       - golang
       - gparted
       - gtk2-engines-murrine 
@@ -12,8 +12,8 @@
       - jq
       - keepassxc
       - libjpeg-dev
-      - python2
-      - python-pip-whl
+      - libxml2-dev
+      - libxslt1-dev
       - python3
       - python3-pip
       - python3-venv
@@ -26,7 +26,11 @@
       - zulucrypt-gui
     state: present
 
+- name: set git buffer
+  ansible.builtin.shell: git config --global http.postBuffer 1048576000
+
 - name: Create Terminator config directory if it doesn't exist
+  become_user: "{{ ansible_user }}"
   file:
     path: "/home/{{ ansible_user }}/.config/terminator/"
     state: directory
@@ -35,6 +39,7 @@
     mode: 0755
 
 - name: Copy Terminator config
+  become_user: "{{ ansible_user }}"
   copy:
    src: "./files/terminator_config"
    dest: "/home/{{ ansible_user }}/.config/terminator/config"
@@ -48,6 +53,7 @@
     path: /usr/lib/python3/dist-packages/OpenSSL
 
 - name: Install - Python modules
+  become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
     name: 
       - colorama
@@ -56,3 +62,5 @@
       - netaddr
       - pyopenssl
       - rfc5424-logging-handler
+    virtualenv: "$HOME/.pyenv/versions/3.9.18"
+    virtualenv_command: $HOME/.pyenv/bin/pyenv virtualenv 3.9.18
