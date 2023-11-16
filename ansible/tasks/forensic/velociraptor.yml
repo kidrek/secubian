@@ -12,7 +12,7 @@
 
 - name: "Velociraptor - Download the latest version"
   get_url:                                                           
-    url: "https://github.com/Velocidex/velociraptor/releases/download/{{ latest_version.json.tag_name }}/velociraptor-{{ latest_version.json.tag_name }}-linux-amd64"                       
+    url: "https://github.com/Velocidex/velociraptor/releases/download/{{ latest_version.json.tag_name }}/velociraptor-{{ latest_version.json.tag_name }}-linux-{{ arch }}"                       
     dest: "/usr/bin/velociraptor"
 
 - name: "Velociraptor - Set executable"
