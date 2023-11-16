@@ -10,12 +10,9 @@
       - libcapstone-dev
       - libraw1394-11 
       - libssl-dev
-      - python-dev
-      - python-setuptools
       - tzdata
       - yara 
     state: present
-
 
 - name: "Volatility | Install python libraries needed by volatility"
   become_user: "{{ ansible_user }}"
@@ -36,13 +33,13 @@
     virtualenv: "$HOME/.pyenv/versions/2.7.18"
     virtualenv_command: $HOME/.pyenv/bin/pyenv virtualenv 2.7.18
 
-
 - name: "Volatility | Clone git repos"
   become_user: "{{ ansible_user }}"
   git:
     repo: "{{ item.repo }}"
     accept_hostkey: yes
     dest: "{{ item.dest }}"
+    force: yes
   with_items:
     - { repo: "https://github.com/volatilityfoundation/volatility.git", dest: "{{ DFIR_toolsDir }}/volatility" }
 
@@ -58,37 +55,48 @@
 ## src : https://github.com/juju4/ansible-volatility/blob/master/tasks/volatility-modules.yml
 
 - name: "Volatility | Ensure volatility plugins directory exists"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.file:
     dest: "{{ DFIR_toolsDir }}/volatility/volatilityplugins"
     mode: '0755'
     state: directory
 
 - name: "Volatility | Set up plugins developed and maintained by the community"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.git:
     repo: https://github.com/volatilityfoundation/community.git
     dest: "{{ DFIR_toolsDir }}/volatility/volatilityplugins/community"
+    force: yes
 
 ## http://blog.jpcert.or.jp/2016/12/a-new-tool-to-d-d6bc.html
 ## https://blog.jpcert.or.jp/2018/08/volatility-plugin-for-detecting-cobalt-strike-beacon.html
 - name: Artifact Analysis tool from JP-CERT
+  become_user: "{{ ansible_user }}"
   ansible.builtin.git:
     repo: https://github.com/JPCERTCC/aa-tools.git
     dest: "{{ DFIR_toolsDir }}/volatility/aa-tools"
+    force: yes
 
 - name: Autoruns
+  become_user: "{{ ansible_user }}"
   ansible.builtin.git:
     repo: https://github.com/tomchop/volatility-autoruns
     dest: "{{ DFIR_toolsDir }}/volatility/volatilityplugins/volatility-autoruns"
+    force: yes
 
 - name: Bitlocker keys retrieving
+  become_user: "{{ ansible_user }}"
   ansible.builtin.git:
     repo: https://github.com/elceef/bitlocker
     dest: "{{ DFIR_toolsDir }}/volatility/volatilityplugins/elceef-bitlocker"
+    force: yes
 
 - name: Malware config extractor - plugx, andromeda
+  become_user: "{{ ansible_user }}"
   ansible.builtin.git:
     repo: https://github.com/arbor-jjones/volatility_plugins.git
     dest: "{{ DFIR_toolsDir }}/volatility/plugx+andromeda"
+    force: yes
 
 - name: "Bash | Add aliases"
   become_user: "{{ ansible_user }}"
@@ -99,4 +107,4 @@
     line: "alias {{ item.alias }}='{{ item.commandLine }}'"
     regexp: "^alias {{ item.alias }}="
   with_items:
-    - { alias: "vol.py", commandLine: "python2 {{ DFIR_toolsDir }}/volatility/vol.py" }
+    - { alias: "vol.py", commandLine: "$HOME/.pyenv/versions/2.7.18/bin/python {{ DFIR_toolsDir }}/volatility/vol.py" }
