@@ -6,19 +6,38 @@
       - autoconf 
       - automake
       - flex
+      - gcc 
+      - g++ 
+      - git 
+        #      - openjdk-11-jdk 
       - libewf-dev 
-      - openjdk-11-jdk 
+      - libjson-c-dev
+      - libssl-dev 
+      - libxml2-dev 
+      - libtool
+      - make 
+      - zlib1g-dev
+      - wget 
     state: present
-
 
 - name: "Bulk Extractor | Clone git repos"
   become_user: "{{ ansible_user }}"
   git:
     repo: "{{ item.repo }}"
-    accept_hostkey: yes
     dest: "{{ item.dest }}"
+    force: yes
   with_items:
     - { repo: "https://github.com/simsong/bulk_extractor.git", dest: "{{ DFIR_toolsDir }}/bulk_extractor" }
+
+- name: "Bulk Extractor | Disable usage of restart function"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.replace:
+    path: "{{ DFIR_toolsDir }}/bulk_extractor/{{ item.filepath }}"
+    regexp: "{{ item.Oldline }}"
+    replace: "{{ item.Newline }}"
+  with_items:
+    - { filepath: "src/bulk_extractor.cpp", Oldline: "r\\.restart\\(\\)", Newline: "//r.restart();"}
+    - { filepath: "src/test_be3.cpp", Oldline: "r\\.restart\\(\\)", Newline: "//r.restart();"}
 
 - name: "Bulk Extractor | Setup specific libraries"
   become_user: "{{ ansible_user }}"
