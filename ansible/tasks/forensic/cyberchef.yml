@@ -1,0 +1,40 @@
+
+- name: "CyberChef | Get latest version of CyberChef from Github API"
+  become_user: "{{ ansible_user }}"
+  uri:
+    url: "https://api.github.com/repos/gchq/cyberchef/releases/latest"
+    return_content: yes
+  register: url_content
+
+- name: "CyberChef | Set latest version tag name in cyberchef_latest_version variable"
+  become_user: "{{ ansible_user }}"
+  set_fact:
+    cyberchef_latest_tag_name: "{{ url_content.json.tag_name }}"
+
+- name: "CyberChef | Install"
+  become_user: "{{ ansible_user }}"
+  get_url:
+    url: "https://github.com/gchq/cyberchef/releases/download/{{ cyberchef_latest_tag_name }}/CyberChef_{{ cyberchef_latest_tag_name }}.zip"
+    dest: "{{ DFIR_toolsDir }}/data_processing/{{ cyberchef_latest_tag_name }}.zip"
+    mode: 0755
+
+- name: "CyberChef | Create directory"
+  become_user: "{{ ansible_user }}"
+  file:
+    path: "{{ DFIR_toolsDir }}/data_processing/Cyberchef/"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0775
+
+- name: "CyberChef | Extract html file"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.unarchive:
+    src: "{{ DFIR_toolsDir }}/data_processing/{{ cyberchef_latest_tag_name }}.zip"
+    dest: "{{ DFIR_toolsDir }}/data_processing/Cyberchef/"
+
+- name: "CyberChef | Create symbolic link"
+  file:
+    src: "{{ DFIR_toolsDir }}/data_processing/Cyberchef/CyberChef_{{ cyberchef_latest_tag_name }}.html"
+    dest: "{{ DFIR_toolsDir }}/data_processing/Cyberchef/Cyberchef.html"
+    state: link
