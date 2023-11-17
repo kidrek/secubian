@@ -1,4 +1,13 @@
 
+- name: create directory if they don't exist
+  become_user: "{{ ansible_user }}"
+  file:
+    path: "{{ DFIR_toolsDir }}/analyse/rules/sigma/"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0775
+
 - name: "Sigma Repositories | Download repository"
   become_user: "{{ ansible_user }}"
   git:
@@ -8,6 +17,6 @@
     recursive: yes
     force: true
   with_items:
-    - { repo: "https://github.com/SigmaHQ/sigma.git", dest: "{{ DETECTION_rulesDir }}/sigma/sigmaHQ" }
-    - { repo: "https://github.com/mdecrevoisier/SIGMA-detection-rules.git", dest: "{{ DETECTION_rulesDir }}/sigma/mdecrevoisier" }
+    - { repo: "https://github.com/SigmaHQ/sigma.git", dest: "{{ DFIR_toolsDir }}/analyse/rules/sigma/sigmaHQ" }
+    - { repo: "https://github.com/mdecrevoisier/SIGMA-detection-rules.git", dest: "{{ DFIR_toolsDir }}/analyse/rules/sigma/mdecrevoisier" }
 
