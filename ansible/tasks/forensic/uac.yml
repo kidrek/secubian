@@ -1,0 +1,25 @@
+
+
+- name: "UAC | Get latest version of UAC from Github API"
+  become_user: "{{ ansible_user }}"
+  uri:
+    url: "https://api.github.com/repos/tclahr/uac/releases/latest"
+    return_content: yes
+  register: url_content
+
+- name: "UAC | Set latest version in uac_latest_version variable"
+  become_user: "{{ ansible_user }}"
+  set_fact:
+    uac_latest_version: "{{ url_content.json.name }}"
+
+- name: "UAC | Set latest version tag name in uac_latest_version variable"
+  become_user: "{{ ansible_user }}"
+  set_fact:
+    uac_latest_tag_name: "{{ url_content.json.tag_name }}"
+
+- name: "UAC | Install"
+  become_user: "{{ ansible_user }}"
+  get_url:
+    url: "https://github.com/tclahr/uac/releases/download/{{ uac_latest_tag_name }}/{{ uac_latest_version }}.tar.gz"
+    dest: "{{ DFIR_toolsDir }}/collecte/linux/{{ uac_latest_version }}.tar.gz"
+    mode: 0755
