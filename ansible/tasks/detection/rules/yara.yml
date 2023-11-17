@@ -1,4 +1,14 @@
 
+
+- name: create directory if they don't exist
+  become_user: "{{ ansible_user }}"
+  file:
+    path: "{{ DFIR_toolsDir }}/analyse/rules/yara/"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0775
+
 - name: "Yara rules Repositories | Download repository"
   become_user: "{{ ansible_user }}"
   git:
@@ -8,14 +18,14 @@
     recursive: yes
     force: true
   with_items:
-    - { repo: "https://github.com/bartblaze/Yara-rules.git", dest: "{{ DETECTION_rulesDir }}/yara/bartblaze" }
-    - { repo: "https://github.com/kevoreilly/CAPEv2.git", dest: "{{ DETECTION_rulesDir }}/yara/kevoreilly_CAPEv2/" }
-    - { repo: "https://github.com/elastic/protections-artifacts.git", dest: "{{ DETECTION_rulesDir }}/yara/elastic/" }
-    - { repo: "https://github.com/Neo23x0/signature-base.git", dest: "{{ DETECTION_rulesDir }}/yara/Neo23x0/" }
-    - { repo: "https://github.com/fboldewin/YARA-rules.git", dest: "{{ DETECTION_rulesDir }}/yara/fboldewin/" }
-    - { repo: "https://github.com/chronicle/GCTI.git", dest: "{{ DETECTION_rulesDir }}/yara/GCTI/" }
-    - { repo: "https://github.com/advanced-threat-research/Yara-Rules.git", dest: "{{ DETECTION_rulesDir }}/yara/advanced-threat-research/" }
-    - { repo: "https://github.com/reversinglabs/reversinglabs-yara-rules.git", dest: "{{ DETECTION_rulesDir }}/yara/reversinglabs/" }
+    - { repo: "https://github.com/bartblaze/Yara-rules.git", dest: "{{ DFIR_toolsDir }}/analyse/rules/yara/bartblaze" }
+    - { repo: "https://github.com/kevoreilly/CAPEv2.git", dest: "{{ DFIR_toolsDir }}/analyse/rules/yara/kevoreilly_CAPEv2/" }
+    - { repo: "https://github.com/elastic/protections-artifacts.git", dest: "{{ DFIR_toolsDir }}/analyse/rules/yara/elastic/" }
+    - { repo: "https://github.com/Neo23x0/signature-base.git", dest: "{{ DFIR_toolsDir }}/analyse/rules/yara/Neo23x0/" }
+    - { repo: "https://github.com/fboldewin/YARA-rules.git", dest: "{{ DFIR_toolsDir }}/analyse/rules/yara/fboldewin/" }
+    - { repo: "https://github.com/chronicle/GCTI.git", dest: "{{ DFIR_toolsDir }}/analyse/rules/yara/GCTI/" }
+    - { repo: "https://github.com/advanced-threat-research/Yara-Rules.git", dest: "{{ DFIR_toolsDir }}/analyse/rules/yara/advanced-threat-research/" }
+    - { repo: "https://github.com/reversinglabs/reversinglabs-yara-rules.git", dest: "{{ DFIR_toolsDir }}/analyse/rules/yara/reversinglabs/" }
 
 - name: Upload yara merge script
   # source: https://gist.githubusercontent.com/andreafortuna/29c6ea48adf3d45a979a78763cdc7ce9/raw/4ec711d37f1b428b63bed1f786b26a0654aa2f31/malware_yara_rules.py
@@ -23,7 +33,7 @@
   ansible.builtin.copy: 
     src: "../files/malware_yara_rules.py"
     remote_src: no
-    dest: "{{ DETECTION_rulesDir }}/yara/malware_yara_rules.py"
+    dest: "{{ DFIR_toolsDir }}/analyse/rules/yara/malware_yara_rules.py"
 
 - name: Generate one yara rules from downloaded repositories
-  ansible.builtin.shell: "cd {{ DETECTION_rulesDir }}/yara/; python3 ./malware_yara_rules.py"
+  ansible.builtin.shell: "cd {{ DFIR_toolsDir }}/analyse/rules/yara/; python3 ./malware_yara_rules.py"
