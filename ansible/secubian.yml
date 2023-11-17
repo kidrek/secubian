@@ -9,7 +9,6 @@
       documentationDir: "/home/{{ ansible_user }}/Documents/Documentation"
       playbooksDir: "/home/{{ ansible_user }}/Documents/Playbooks"
       DFIR_toolsDir: "{{ toolsDir }}/DFIR"
-      DETECTION_rulesDir: "{{ toolsDir }}/DETECTION/rules"
       OSINT_toolsDir: "{{ toolsDir }}/OSINT"
       docker_compose_version: "v2.11.1"
 
@@ -27,7 +26,18 @@
      loop:
        - "{{ casesDir }}"
        - "{{ DFIR_toolsDir }}"
+       - "{{ DFIR_toolsDir }}/analyse"
+       - "{{ DFIR_toolsDir }}/analyse/rules"
+       - "{{ DFIR_toolsDir }}/analyse/tools"
+       - "{{ DFIR_toolsDir }}/analyse/tools/windows_binary"
+       - "{{ DFIR_toolsDir }}/analyse/tools/windows_evtx"
+       - "{{ DFIR_toolsDir }}/collecte"
+       - "{{ DFIR_toolsDir }}/collecte/linux"
+       - "{{ DFIR_toolsDir }}/collecte/windows"
+       - "{{ DFIR_toolsDir }}/data_processing"
+       - "{{ DFIR_toolsDir }}/report"
        - "{{ OSINT_toolsDir }}"
+       - "{{ OSINT_toolsDir }}/domains"
        - "{{ playbooksDir }}"
 
    - include: tasks/pyenv.yml
@@ -45,11 +55,14 @@
    - include: tasks/forensic/bulk_extractor.yml
    - include: tasks/forensic/capa.yml
    - include: tasks/forensic/CIRCL_Hashlookup.yml
+   - include: tasks/forensic/cyberchef.yml
    - include: tasks/forensic/didierStevens.yml
    - include: tasks/forensic/IRISWeb.yml
    - include: tasks/forensic/log2timeline.yml
+   - include: tasks/forensic/mvt.yml
    - include: tasks/forensic/opensearch.yml
    - include: tasks/forensic/timesketch.yml
+   - include: tasks/forensic/uac.yml
    - include: tasks/forensic/velociraptor.yml
    - include: tasks/forensic/volatility.yml
    - include: tasks/forensic/volatility3.yml
@@ -124,8 +137,8 @@
        recursive: yes
        force: yes
      with_items:
-       - { repo: "https://github.com/JPCERTCC/LogonTracer.git", dest: "{{ DFIR_toolsDir }}/LogonTracer" }
-       - { repo: "https://github.com/countercept/chainsaw.git", dest: "{{ DFIR_toolsDir }}/chainsaw" }
+       - { repo: "https://github.com/JPCERTCC/LogonTracer.git", dest: "{{ DFIR_toolsDir }}/analyse/tools/windows_evtx/LogonTracer" }
+       - { repo: "https://github.com/countercept/chainsaw.git", dest: "{{ DFIR_toolsDir }}/analyse/tools/windows_evtx/chainsaw" }
 
    - name: Install - Network Python3 modules
      become_user: "{{ ansible_user }}"
