@@ -1,8 +1,8 @@
 - type: log
   enabled: true
   paths:
-    - /home/secubian/Documents/Cases/*/*
-    - /home/secubian/Documents/Cases/*
+    - {{ casesDir }}/*/*
+    - {{ casesDir }}/*
   include_files: [ '\.json$' ]
   close_inactive: 5m
   fields_under_root: true
