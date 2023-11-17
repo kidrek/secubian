@@ -26,13 +26,8 @@
           "url": "file://{{ documentationDir }}/wiki/build/html/index.html"
         },
         {
-          "name": "Common tools",
-          "children": [
-            {
-              "url": "https://gchq.github.io/CyberChef/",
-              "name": "Cyberchef"
-            }
-          ]
+          "name": "Cyberchef",
+          "url": "file://{{ DFIR_toolsDir }}/data_processing/Cyberchef/Cyberchef.html"
         },
         {
           "name": "DFIR",
@@ -259,6 +254,8 @@
       "Preferences": {
         "// https://github.com/pyllyukko/user.js/tree/master" : "",
         "browser.contentblocking.category": "strict",
+        "browser.preferences.defaultPerformanceSettings.enabled": false,
+        "layers.acceleration.disabled": true,
         "browser.newtab.url": "about:blank",
         "browser.search.defaultenginename": "DuckDuckGo",
         "browser.search.order.1": "DuckDuckGo",
