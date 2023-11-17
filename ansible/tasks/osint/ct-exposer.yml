@@ -9,11 +9,11 @@
     force: yes
     recursive: yes
   with_items:
-    - { repo: "https://github.com/chris408/ct-exposer.git", dest: "{{ OSINT_toolsDir }}/ct-exposer" }
+    - { repo: "https://github.com/chris408/ct-exposer.git", dest: "{{ OSINT_toolsDir }}/domains/ct-exposer" }
 
 - name: "CT-EXPOSER | Python dependencies installation"
   become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
-    requirements: "{{ OSINT_toolsDir }}/ct-exposer/requirements.txt"
+    requirements: "{{ OSINT_toolsDir }}/domains/ct-exposer/requirements.txt"
     virtualenv: "$HOME/.pyenv/versions/3.9.18"
     virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv 3.9.18"

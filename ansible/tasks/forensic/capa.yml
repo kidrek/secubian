@@ -17,7 +17,7 @@
     force: yes
     recursive: yes
   with_items:
-    - { repo: "https://github.com/mandiant/capa-rules.git", dest: "{{ DFIR_toolsDir }}/flare-capa-rules" }
+    - { repo: "https://github.com/mandiant/capa-rules.git", dest: "{{ DFIR_toolsDir }}/analyse/rules/flare-capa-rules" }
 
 - name: "FLARE CAPA | Add BASH aliases"
   become_user: "{{ ansible_user }}"
@@ -25,6 +25,6 @@
     dest: "~/.bash_aliases"
     create: yes
     mode: 0644
-    line: 'alias capa="capa -r {{ DFIR_toolsDir }}/flare-capa-rules"'
+    line: 'alias capa="capa -r {{ DFIR_toolsDir }}/analyse/rules/flare-capa-rules"'
     regexp: "^alias capa="
 

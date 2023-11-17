@@ -9,16 +9,16 @@
     force: yes
     recursive: yes
   with_items:
-    - { repo: "https://github.com/dfir-iris/iris-web.git", dest: "{{ DFIR_toolsDir }}/iris-web" }
+    - { repo: "https://github.com/dfir-iris/iris-web.git", dest: "{{ DFIR_toolsDir }}/report/iris-web" }
 
 - name: "IRIS Web | Create configuration"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/iris-web; cp .env.model .env;
+  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/report/iris-web; cp .env.model .env;
 
 - name: "IRIS Web | Set Administrator password"
   become_user: "{{ ansible_user }}"
   lineinfile:
-    dest: "{{ DFIR_toolsDir }}/iris-web/.env"
+    dest: "{{ DFIR_toolsDir }}/report/iris-web/.env"
     create: yes
     mode: 0644
     line: 'IRIS_ADM_PASSWORD=administrator'
@@ -26,7 +26,7 @@
 
 - name: "IRIS Web | Build Docker"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/iris-web; sudo service docker restart; sudo docker-compose pull; sudo docker-compose build;
+  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/report/iris-web; sudo service docker restart; sudo docker-compose pull; sudo docker-compose build;
 
 - name: "IRIS Web | Add BASH aliases"
   become_user: "{{ ansible_user }}"
@@ -34,13 +34,13 @@
     dest: "~/.bash_aliases"
     create: yes
     mode: 0644
-    line: 'alias iris-web="cd {{ DFIR_toolsDir }}/iris-web; sudo docker-compose up"'
+    line: 'alias iris-web="cd {{ DFIR_toolsDir }}/report/iris-web; sudo docker-compose up"'
     regexp: "^alias iris-web="
 
 - name: "IRIS Web | Create reports folder"
   become_user: "{{ ansible_user }}"
   file:
-    path: "{{ DFIR_toolsDir }}/iris-web/reports"
+    path: "{{ DFIR_toolsDir }}/report/iris-web/reports"
     state: directory
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
@@ -52,7 +52,7 @@
 - name: "IRIS Web | Download reports templates"
   ansible.builtin.get_url:
     url: "{{ item.url }}"
-    dest: "{{ DFIR_toolsDir }}/iris-web/reports/{{ item.filename }}"
+    dest: "{{ DFIR_toolsDir }}/report/iris-web/reports/{{ item.filename }}"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     mode: '0440'

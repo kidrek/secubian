@@ -11,10 +11,10 @@
     recursive: yes
     force: true
   with_items:
-    - { repo: "https://github.com/DidierStevens/DidierStevensSuite.git", dest: "{{ DFIR_toolsDir }}/DidierStevensSuite" }
+    - { repo: "https://github.com/DidierStevens/DidierStevensSuite.git", dest: "{{ DFIR_toolsDir }}/data_processing/DidierStevensSuite" }
 
 - name: "DidierStevensSuite | set executable"
-  ansible.builtin.shell: chmod +x {{ DFIR_toolsDir }}/DidierStevensSuite/*.py
+  ansible.builtin.shell: chmod +x {{ DFIR_toolsDir }}/data_processing/DidierStevensSuite/*.py
 
 - name: "DidierStevensSuite | Bash - Add aliases"
   become_user: "{{ ansible_user }}"
@@ -22,8 +22,8 @@
     dest: "~/.bashrc"
     create: yes
     mode: 0644
-    line: "export PATH=$PATH:{{ DFIR_toolsDir }}/DidierStevensSuite"
-    regexp: "^export PATH=$PATH:{{ DFIR_toolsDir }}/DidierStevensSuite"
+    line: "export PATH=$PATH:{{ DFIR_toolsDir }}/data_processing/DidierStevensSuite"
+    regexp: "^export PATH=$PATH:{{ DFIR_toolsDir }}/data_processing/DidierStevensSuite"
 
 - name: "DidierStevensSuite | Install required python modules"
   become_user: "{{ ansible_user }}"

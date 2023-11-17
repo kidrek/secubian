@@ -118,25 +118,25 @@
   become_user: "{{ ansible_user }}"
   command: gnome-shell-extension-tool --enable-extension workspace-indicator@gnome-shell-extensions.gcampax.github.com
 
-- name: Enable Gnome Shell extension - dash-to-panel@jderose9.github.com
-  become_user: "{{ ansible_user }}"
-  command: gnome-shell-extension-tool --enable-extension dash-to-panel@jderose9.github.com
+#- name: Enable Gnome Shell extension - dash-to-panel@jderose9.github.com
+#  become_user: "{{ ansible_user }}"
+#  command: gnome-shell-extension-tool --enable-extension dash-to-panel@jderose9.github.com
 
-- name: Gnome - Configure dash-to-panel
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/shell/extensions/dash-to-panel/panel-size" value="38"
+#- name: Gnome - Configure dash-to-panel
+#  become_user: "{{ ansible_user }}"
+#  dconf: key="/org/gnome/shell/extensions/dash-to-panel/panel-size" value="38"
 
-- name: Gnome - Configure dash-to-panel - leftbox font size
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/shell/extensions/dash-to-panel/leftbox-size" value="13"
+#- name: Gnome - Configure dash-to-panel - leftbox font size
+#  become_user: "{{ ansible_user }}"
+#  dconf: key="/org/gnome/shell/extensions/dash-to-panel/leftbox-size" value="13"
 
-- name: Gnome - Configure dash-to-panel
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/shell/extensions/dash-to-panel/dot-style-focused" value="'DOTS'"
+#- name: Gnome - Configure dash-to-panel
+#  become_user: "{{ ansible_user }}"
+#  dconf: key="/org/gnome/shell/extensions/dash-to-panel/dot-style-focused" value="'DOTS'"
 
-- name: Gnome - Configure dash-to-panel
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/shell/extensions/dash-to-panel/dot-style-unfocused" value="'DOTS'"
+#- name: Gnome - Configure dash-to-panel
+#  become_user: "{{ ansible_user }}"
+#  dconf: key="/org/gnome/shell/extensions/dash-to-panel/dot-style-unfocused" value="'DOTS'"
 
 - name: Gnome - Set/Remove favorites apps from Dash-panel
   become_user: "{{ ansible_user }}"
@@ -254,4 +254,18 @@
   with_items:
     - { key: "automount", value: "false" }
     - { key: "automount-open", value: "false" }
+
+- name: Gnome - Add directories bookmarks
+  become_user: "{{ ansible_user }}"
+  lineinfile:
+    dest: "~/.config/gtk-3.0/bookmarks"
+    create: yes
+    mode: 0644
+    line: "file:////{{ item.path }}"
+    regexp: "^file:////{{ item.path }}"
+  with_items:
+    - { path: "{{ casesDir }}" }
+    - { path: "{{ documentationDir }}" }
+    - { path: "{{ playbooksDir }}" }
+    - { path: "{{ toolsDir }} "}
 

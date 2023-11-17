@@ -41,7 +41,7 @@
     dest: "{{ item.dest }}"
     force: yes
   with_items:
-    - { repo: "https://github.com/volatilityfoundation/volatility.git", dest: "{{ DFIR_toolsDir }}/volatility" }
+    - { repo: "https://github.com/volatilityfoundation/volatility.git", dest: "{{ DFIR_toolsDir }}/data_processing/volatility" }
 
 #- name: "Volatility | Create YARA Symbolic Link for library"
 #  ansible.builtin.file:
@@ -57,7 +57,7 @@
 - name: "Volatility | Ensure volatility plugins directory exists"
   become_user: "{{ ansible_user }}"
   ansible.builtin.file:
-    dest: "{{ DFIR_toolsDir }}/volatility/volatilityplugins"
+    dest: "{{ DFIR_toolsDir }}/data_processing/volatility/volatilityplugins"
     mode: '0755'
     state: directory
 
@@ -65,7 +65,7 @@
   become_user: "{{ ansible_user }}"
   ansible.builtin.git:
     repo: https://github.com/volatilityfoundation/community.git
-    dest: "{{ DFIR_toolsDir }}/volatility/volatilityplugins/community"
+    dest: "{{ DFIR_toolsDir }}/data_processing/volatility/volatilityplugins/community"
     force: yes
 
 ## http://blog.jpcert.or.jp/2016/12/a-new-tool-to-d-d6bc.html
@@ -74,28 +74,28 @@
   become_user: "{{ ansible_user }}"
   ansible.builtin.git:
     repo: https://github.com/JPCERTCC/aa-tools.git
-    dest: "{{ DFIR_toolsDir }}/volatility/aa-tools"
+    dest: "{{ DFIR_toolsDir }}/data_processing/volatility/aa-tools"
     force: yes
 
 - name: Autoruns
   become_user: "{{ ansible_user }}"
   ansible.builtin.git:
     repo: https://github.com/tomchop/volatility-autoruns
-    dest: "{{ DFIR_toolsDir }}/volatility/volatilityplugins/volatility-autoruns"
+    dest: "{{ DFIR_toolsDir }}/data_processing/volatility/volatilityplugins/volatility-autoruns"
     force: yes
 
 - name: Bitlocker keys retrieving
   become_user: "{{ ansible_user }}"
   ansible.builtin.git:
     repo: https://github.com/elceef/bitlocker
-    dest: "{{ DFIR_toolsDir }}/volatility/volatilityplugins/elceef-bitlocker"
+    dest: "{{ DFIR_toolsDir }}/data_processing/volatility/volatilityplugins/elceef-bitlocker"
     force: yes
 
 - name: Malware config extractor - plugx, andromeda
   become_user: "{{ ansible_user }}"
   ansible.builtin.git:
     repo: https://github.com/arbor-jjones/volatility_plugins.git
-    dest: "{{ DFIR_toolsDir }}/volatility/plugx+andromeda"
+    dest: "{{ DFIR_toolsDir }}/data_processing/volatility/plugx+andromeda"
     force: yes
 
 - name: "Bash | Add aliases"
@@ -107,4 +107,4 @@
     line: "alias {{ item.alias }}='{{ item.commandLine }}'"
     regexp: "^alias {{ item.alias }}="
   with_items:
-    - { alias: "vol.py", commandLine: "$HOME/.pyenv/versions/2.7.18/bin/python {{ DFIR_toolsDir }}/volatility/vol.py" }
+    - { alias: "vol.py", commandLine: "$HOME/.pyenv/versions/2.7.18/bin/python {{ DFIR_toolsDir }}/data_processing/volatility/vol.py" }

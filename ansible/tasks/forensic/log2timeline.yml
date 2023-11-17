@@ -18,7 +18,7 @@
 
 - name: "Log2timeline | create directory if they don't exist"
   file:
-    path: "{{ DFIR_toolsDir }}/log2timeline/"
+    path: "{{ DFIR_toolsDir }}/data_processing/log2timeline/"
     state: directory
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
@@ -27,5 +27,5 @@
 - name: "Log2timeline | Download windows filter"
   ansible.builtin.get_url:
     url: https://raw.githubusercontent.com/mark-hallman/plaso_filters/44f880b1585b1ca369aa132de3a89ee60e0522ea/filter_windows.txt
-    dest: "{{ DFIR_toolsDir }}/log2timeline/filter_windows.txt"
+    dest: "{{ DFIR_toolsDir }}/data_processing/log2timeline/filter_windows.txt"
     mode: '0440'

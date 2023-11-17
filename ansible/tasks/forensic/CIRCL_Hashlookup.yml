@@ -11,12 +11,12 @@
     force: yes
     recursive: yes
   with_items:
-    - { repo: "https://github.com/hashlookup/hashlookup-forensic-analyser.git", dest: "{{ DFIR_toolsDir }}/CIRCL-Hashlookup" }
+    - { repo: "https://github.com/hashlookup/hashlookup-forensic-analyser.git", dest: "{{ DFIR_toolsDir }}/analyse/tools/windows_binary/CIRCL-Hashlookup" }
 
 - name: "CIRCL-Hashlookup | Python modules requirement"
   become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
-    requirements: "{{ DFIR_toolsDir }}/CIRCL-Hashlookup/REQUIREMENTS"
+    requirements: "{{ DFIR_toolsDir }}/analyse/tools/windows_binary/CIRCL-Hashlookup/REQUIREMENTS"
     virtualenv: "$HOME/.pyenv/versions/{{ python_version }}"
     virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv {{ python_version }}"
 
@@ -24,7 +24,7 @@
   become_user: "{{ ansible_user }}"
   ansible.builtin.get_url:
     url: https://cra.circl.lu/hashlookup/hashlookup-full.bloom
-    dest: "{{ DFIR_toolsDir }}/CIRCL-Hashlookup/hashlookup-full.bloom"
+    dest: "{{ DFIR_toolsDir }}/analyse/tools/windows_binary/CIRCL-Hashlookup/hashlookup-full.bloom"
     timeout: 240
 
 - name: "CIRCL-Hashlookup | Add BASH aliases"
@@ -33,5 +33,5 @@
     dest: "~/.bash_aliases"
     create: yes
     mode: 0644
-    line: 'alias hashlookupByCIRCL="$HOME/.pyenv/versions/{{ python_version }}/bin/python {{ DFIR_toolsDir }}/CIRCL-Hashlookup/bin/hashlookup-analyser.py --bloomfilters {{ DFIR_toolsDir }}/CIRCL-Hashlookup/hashlookup-full.bloom --include-stats "'
+    line: 'alias hashlookupByCIRCL="$HOME/.pyenv/versions/{{ python_version }}/bin/python {{ DFIR_toolsDir }}/analyse/tools/windows_binary/CIRCL-Hashlookup/bin/hashlookup-analyser.py --bloomfilters {{ DFIR_toolsDir }}/analyse/tools/windows_binary/CIRCL-Hashlookup/hashlookup-full.bloom --include-stats "'
     regexp: "^alias hashlookupByCIRCL="

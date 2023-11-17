@@ -27,12 +27,12 @@
     dest: "{{ item.dest }}"
     force: yes
   with_items:
-    - { repo: "https://github.com/simsong/bulk_extractor.git", dest: "{{ DFIR_toolsDir }}/bulk_extractor" }
+    - { repo: "https://github.com/simsong/bulk_extractor.git", dest: "{{ DFIR_toolsDir }}/data_processing/bulk_extractor" }
 
 - name: "Bulk Extractor | Disable usage of restart function"
   become_user: "{{ ansible_user }}"
   ansible.builtin.replace:
-    path: "{{ DFIR_toolsDir }}/bulk_extractor/{{ item.filepath }}"
+    path: "{{ DFIR_toolsDir }}/data_processing/bulk_extractor/{{ item.filepath }}"
     regexp: "{{ item.Oldline }}"
     replace: "{{ item.Newline }}"
   with_items:
@@ -43,5 +43,5 @@
   become_user: "{{ ansible_user }}"
   ansible.builtin.shell: "{{ item.cmdline }}"
   with_items:
-    - { cmdline: "cd {{ DFIR_toolsDir }}/bulk_extractor; sudo chmod +x bootstrap.sh; sudo ./bootstrap.sh;" }  
-    - { cmdline: "cd {{ DFIR_toolsDir }}/bulk_extractor; sudo ./configure; sudo make; sudo make install;" }  
+    - { cmdline: "cd {{ DFIR_toolsDir }}/data_processing/bulk_extractor; sudo chmod +x bootstrap.sh; sudo ./bootstrap.sh;" }  
+    - { cmdline: "cd {{ DFIR_toolsDir }}/data_processing/bulk_extractor; sudo ./configure; sudo make; sudo make install;" }  
