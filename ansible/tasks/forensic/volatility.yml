@@ -1,4 +1,7 @@
 # Volatility
+- name: "Volatility | set PythonVersion"
+  ansible.builtin.set_fact:
+    python_version : "2.7.18" 
 
 - name: "Volatility | Install requirements"
   apt:
@@ -30,8 +33,8 @@
       - pytz
       - setuptools
       - ujson
-    virtualenv: "$HOME/.pyenv/versions/2.7.18"
-    virtualenv_command: $HOME/.pyenv/bin/pyenv virtualenv 2.7.18
+    virtualenv: "$HOME/.pyenv/versions/{{ python_version }}"
+    virtualenv_command: $HOME/.pyenv/bin/pyenv virtualenv {{ python_version }}
 
 - name: "Volatility | Clone git repos"
   become_user: "{{ ansible_user }}"
@@ -42,6 +45,10 @@
     force: yes
   with_items:
     - { repo: "https://github.com/volatilityfoundation/volatility.git", dest: "{{ DFIR_toolsDir }}/data_processing/volatility" }
+
+- name: "Volatility | Set python version"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.shell: "cd {{ DFIR_toolsDir }}/data_processing/volatility; $HOME/.pyenv/bin/pyenv local {{ python_version }}"
 
 #- name: "Volatility | Create YARA Symbolic Link for library"
 #  ansible.builtin.file:
@@ -107,4 +114,20 @@
     line: "alias {{ item.alias }}='{{ item.commandLine }}'"
     regexp: "^alias {{ item.alias }}="
   with_items:
-    - { alias: "vol.py", commandLine: "$HOME/.pyenv/versions/2.7.18/bin/python {{ DFIR_toolsDir }}/data_processing/volatility/vol.py" }
+    - { alias: "vol.py", commandLine: "$HOME/.pyenv/versions/{{ python_version }}/bin/python {{ DFIR_toolsDir }}/data_processing/volatility/vol.py" }
+
+- name: "Volatility | Create desktop file"
+    copy:
+      dest: /usr/share/applications/secubian_volatility.desktop
+      content: |
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=volatility
+Name[vi]=volatility
+GenericName=FORENSIC VOLATILITY
+Icon=terminal
+Exec=terminator -e "echo \"Command: python vol.py -h \n-----\"; cd /home/secubian/Documents/Tools/DFIR/data_processing/volatility/; $HOME/.pyenv/versions/{{ python_version }}/bin/python vol.py -h;${SHELL:-bash};"
+Terminal=true
+Categories=SECUBIAN_forensic_memory;
+Encoding=UTF-8
