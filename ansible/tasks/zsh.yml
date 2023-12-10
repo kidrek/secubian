@@ -6,6 +6,7 @@
     state: present
 
 - name: "ZSH | Download and install ohmyzsh package"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.shell: "{{ item.commandLine }}"
   with_items:
     - { commandLine: "sh -c \"$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\" \"\" --unattended" }
