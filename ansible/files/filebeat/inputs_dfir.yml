@@ -1,12 +1,12 @@
-- type: log
+- type: filestream
   enabled: true
+  id: dfir-collection
+  take_over: true
   paths:
-    - {{ casesDir }}/*/*
-    - {{ casesDir }}/*
-  include_files: [ '\.json$' ]
+    - {{ casesDir }}/**/*.json
+    - {{ casesDir }}/*.json
   close_inactive: 5m
   fields_under_root: true
   fields:
     type: secubianDFIR
     file.type: json
-
