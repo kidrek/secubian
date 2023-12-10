@@ -117,9 +117,9 @@
     - { alias: "vol.py", commandLine: "$HOME/.pyenv/versions/{{ python_version }}/bin/python {{ DFIR_toolsDir }}/data_processing/volatility/vol.py" }
 
 - name: "Volatility | Create desktop file"
-    copy:
-      dest: /usr/share/applications/secubian_volatility.desktop
-      content: |
+  copy:
+    dest: /usr/share/applications/secubian_volatility.desktop
+    content: |
 [Desktop Entry]
 Type=Application
 Version=1.0
