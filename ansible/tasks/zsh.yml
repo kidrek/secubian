@@ -13,3 +13,12 @@
     - { commandLine: "sed -i 's/ZSH_THEME=\"robbyrussell\"/ZSH_THEME=\"af-magic\"/g' ~/.zshrc" }
     - { commandLine: "chsh -s /bin/zsh" }
   ignore_errors: true
+
+- name: "Zsh | Add aliases"
+  become_user: "{{ ansible_user }}"
+  lineinfile:
+    dest: "~/.zshrc"
+    create: yes
+    mode: 0644
+    line: "if [ -f ~/.aliases ]; then . ~/.aliases; fi"
+    insertafter: EOF
