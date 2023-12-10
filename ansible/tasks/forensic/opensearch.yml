@@ -112,6 +112,13 @@
   with_items:
     - { repo: "deb [signed-by=/usr/share/keyrings/elastic-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" }
 
+- name: "Logstash | Install package"
+  ansible.builtin.apt:
+    name:
+      - logstash
+    state: latest
+    update_cache: true
+
 - name: "Logstash | copy logstash.yml on remote host"
   ansible.builtin.template: 
     src  : ../../files/logstash/logstash.conf
