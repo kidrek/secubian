@@ -8,6 +8,7 @@
 - name: "OpenSearch | Update cache and Install requirements"
   ansible.builtin.apt:
     name:
+      - apt-transport-https
       - lsb-release 
       - ca-certificates 
       - curl 
@@ -98,3 +99,40 @@
     name: filebeat
     state: started
     enabled: true
+
+- name: "Logstash | Add GPG key"
+  ansible.builtin.get_url:
+    url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+    dest: /usr/share/keyrings/elastic-keyring.gpg
+
+- name: "Logstash | Apt source"
+  ansible.builtin.apt_repository:
+    repo: "{{ item.repo }}"
+    state: present
+  with_items:
+    - { repo: "deb [signed-by=/usr/share/keyrings/elastic-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" }
+
+- name: "Logstash | copy logstash.yml on remote host"
+  ansible.builtin.template: 
+    src  : ../../files/logstash/logstash.conf
+    dest : "/etc/logstash/logstash.conf"
+
+- name: "Logstash | Enable Logstash service"
+  ansible.builtin.systemd:
+    name: logstash
+    state: started
+    enabled: true
+
+## https://www.middlewareinventory.com/blog/ansible-find-examples/
+- name : "Logstash | Find logstash-plugin binary"
+  become: true
+  find:
+    paths: /
+    patterns: 'logstash-plugin'
+    recurse: yes
+  register: output
+
+- name: "Logstash | Install opensearch plugin"
+  become: true
+  ansible.builtin.shell: "{{ item.path }} install logstash-output-opensearch"
+  with_items: "{{ output.files }}"
