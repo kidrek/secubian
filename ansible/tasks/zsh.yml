@@ -1,0 +1,14 @@
+
+- name: "ZSH | Install package"
+  apt:
+    name: 
+      - zsh
+    state: present
+
+- name: "ZSH | Download and install ohmyzsh package"
+  ansible.builtin.shell: {{ item.commandLine }}
+  with_items:
+    - { commandLine: "sh -c \"$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\" \"\" --unattended" }
+    - { commandLine: "sed -i 's/ZSH_THEME=\"robbyrussell\"/ZSH_THEME=\"af-magic\"/g' ~/.zshrc" }
+    - { commandLine: "chsh -s /bin/zsh" }
+  ignore_errors: true

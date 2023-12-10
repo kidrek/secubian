@@ -44,6 +44,7 @@
    - include: tasks/requirements_packages.yml
    - include: tasks/gnome.yml
    - include: tasks/i3.yml
+   - include: tasks/zsh.yml
    - include: tasks/vscode.yml
    - include: tasks/firefox.yml
    - include: tasks/docker.yml
@@ -97,6 +98,7 @@
          - capstone
          - eml_parser
          - extract-msg
+         - lnkparse3          #  Windows Shortcut file (LNK) parser
          - msg_parser[rtf]
          - oletools
          - peepdf
@@ -115,8 +117,10 @@
          - foremost
          - forensics-full
          - forensics-extra
+         - fq                 # jq like tool focused on binary
          - gddrescue
          - hexedit
+         - libesedb-utils     # tool to read Extensible Storage Engine (ESE) Database File (.edb) in Microsoft OS
          - libevtx-utils
          - libewf-dev
          - libguestfs-tools
@@ -126,6 +130,7 @@
          - sleuthkit
          - sqlitebrowser
          - testdisk
+         - thunderbird      # to analyse email box
        state: present
 
    - name: "Install - Forensic Security tools (Github.com)"
