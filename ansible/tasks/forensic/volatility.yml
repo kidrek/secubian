@@ -116,18 +116,19 @@
   with_items:
     - { alias: "vol.py", commandLine: "$HOME/.pyenv/versions/{{ python_version }}/bin/python {{ DFIR_toolsDir }}/data_processing/volatility/vol.py" }
 
-- name: "Volatility | Create desktop file"
-  copy:
-    dest: /usr/share/applications/secubian_volatility.desktop
-    content: |
-[Desktop Entry]
-Type=Application
-Version=1.0
-Name=volatility
-Name[vi]=volatility
-GenericName=FORENSIC VOLATILITY
-Icon=terminal
-Exec=terminator -e "echo \"Command: python vol.py -h \n-----\"; cd /home/secubian/Documents/Tools/DFIR/data_processing/volatility/; $HOME/.pyenv/versions/{{ python_version }}/bin/python vol.py -h;${SHELL:-bash};"
-Terminal=true
-Categories=SECUBIAN_forensic_memory;
-Encoding=UTF-8
+
+#- name: "Volatility | Create desktop file"
+#  copy:
+#    dest: /usr/share/applications/secubian_volatility.desktop
+#    content: |
+#[Desktop Entry]
+#Type=Application
+#Version=1.0
+#Name=volatility
+#Name[vi]=volatility
+#GenericName=FORENSIC VOLATILITY
+#Icon=terminal
+#Exec=terminator -e "echo \"Command: python vol.py -h \n-----\"; cd /home/secubian/Documents/Tools/DFIR/data_processing/volatility/; $HOME/.pyenv/versions/{{ python_version }}/bin/python vol.py -h;${SHELL:-bash};"
+#Terminal=true
+#Categories=SECUBIAN_forensic_memory;
+#Encoding=UTF-8
