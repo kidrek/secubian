@@ -1,6 +1,7 @@
 ############# OPENSEARCH AND DASHBOARD ###############
 
 - name: "OpenSearch tool | copy csv_to_json python script to CASES directort"
+  become_user: "{{ ansible_user }}"
   ansible.builtin.template: 
     src  : ../../files/csv_to_json.py 
     dest : "{{ casesDir }}"
