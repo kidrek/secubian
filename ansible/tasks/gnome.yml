@@ -140,7 +140,7 @@
 
 - name: Gnome - Set/Remove favorites apps from Dash-panel
   become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/shell/favorite-apps" value="['firefox-esr.desktop','terminator.desktop','code.desktop','gedit.desktop','org.keepassxc.KeePassXC.desktop','zulucrypt-gui.desktop','org.remmina.Remmina.desktop','sqlitebrowser.desktop']"
+  dconf: key="/org/gnome/shell/favorite-apps" value="['firefox-esr.desktop','thunderbird.desktop','terminator.desktop','code.desktop','gedit.desktop','org.keepassxc.KeePassXC.desktop','zulucrypt-gui.desktop','org.remmina.Remmina.desktop','sqlitebrowser.desktop']"
 
 - name: Gnome Application Theme vimix-gtk-themes - Clone a github repository
   become_user: "{{ ansible_user }}"
