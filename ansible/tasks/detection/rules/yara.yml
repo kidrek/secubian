@@ -17,6 +17,8 @@
     dest: "{{ item.dest }}"
     recursive: yes
     force: true
+  environment:
+    GIT_TERMINAL_PROMPT: 0
   with_items:
     - { repo: "https://github.com/bartblaze/Yara-rules.git", dest: "{{ DFIR_toolsDir }}/analyse/rules/yara/bartblaze" }
     - { repo: "https://github.com/kevoreilly/CAPEv2.git", dest: "{{ DFIR_toolsDir }}/analyse/rules/yara/kevoreilly_CAPEv2/" }
