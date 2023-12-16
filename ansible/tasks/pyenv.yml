@@ -1,5 +1,4 @@
 
-
 - name: "PyEnv | Install requirements"
   apt:
     name: 
@@ -47,19 +46,29 @@
     - { name: "eval \"$(pyenv virtualenv-init -)\"" }
   when: not pyEnvFile.stat.exists
 
-- name: "PyEnv | Install python 2.7.18"
+- name: "PyEnv | Install python different versions : 2.7.18, 3.8.18, 3.9.18"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: . $HOME/.bashrc && $HOME/.pyenv/bin/pyenv install 2.7.18
+  ansible.builtin.shell: ". $HOME/.bashrc && $HOME/.pyenv/bin/pyenv install {{ item.pythonVersion }}"
+  with_items:
+    - { pythonVersion: '2.7.18' }
+    - { pythonVersion: '3.8.18' }
+    - { pythonVersion: '3.9.18' }
   when: not pyEnvFile.stat.exists
 
-- name: "PyEnv | Install python 3.9.18"
+- name: "PyEnv | Modify PATH in .bashrc"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: . $HOME/.bashrc && $HOME/.pyenv/bin/pyenv install 3.9.18
+  lineinfile:
+    path: "/home/{{ ansible_user }}/.bashrc"
+    line: "export PATH=/home/{{ ansible_user }}/.pyenv/versions/{{item.version}}/bin:$PATH"
+    insertbefore: EOF
+  with_items:
+    - { pythonVersion: '2.7.18' }
+    - { pythonVersion: '3.8.18' }
+    - { pythonVersion: '3.9.18' }
   when: not pyEnvFile.stat.exists
+
 
 - name: "PyEnv | Set python 3.9.18 as default"
   become_user: "{{ ansible_user }}"
   ansible.builtin.shell: $HOME/.pyenv/bin/pyenv global 3.9.18
   when: not pyEnvFile.stat.exists
-
-
