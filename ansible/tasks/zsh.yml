@@ -11,7 +11,13 @@
   with_items:
     - { commandLine: "sh -c \"$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\" \"\" --unattended" }
     - { commandLine: "sed -i 's/ZSH_THEME=\"robbyrussell\"/ZSH_THEME=\"af-magic\"/g' ~/.zshrc" }
-    - { commandLine: "chsh -s /bin/zsh" }
+  ignore_errors: true
+
+- name: "ZSH | Enable zsh"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.shell: "{{ item.commandLine }}"
+  with_items:
+    - { commandLine: "sudo chsh -s $(which zsh) $(whoami)" }
   ignore_errors: true
 
 - name: "Zsh | Add aliases"
