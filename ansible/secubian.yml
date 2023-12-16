@@ -95,16 +95,20 @@
      become_user: "{{ ansible_user }}"
      ansible.builtin.pip:
        name: 
-         - capstone
-         - eml_parser
-         - extract-msg
-         - lnkparse3          #  Windows Shortcut file (LNK) parser
-         - msg_parser[rtf]
-         - oletools
-         - peepdf
-         - pillow
-       virtualenv: "$HOME/.pyenv/versions/3.9.18"
-       virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv 3.9.18"
+         - "{{ item.package }}"
+       virtualenv: "$HOME/.pyenv/versions/{{ item.pythonVersion }}"
+       virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv {{ item.pythonVersion }}"
+     with_items:
+       - { package: "capstone", pythonVersion: "3.9.18" }  
+       - { package: "eml_parser", pythonVersion: "3.9.18" }
+       - { package: "extract-msg", pythonVersion: "3.9.18" }
+       - { package: "lnkparse3", pythonVersion: "3.9.18" }  #  Windows Shortcut file (LNK) parser
+       - { package: "msg_parser[rtf]", pythonVersion: "3.9.18" }
+       - { package: "oletools", pythonVersion: "3.9.18" }
+       - { package: "peepdf", pythonVersion: "3.9.18" }
+       - { package: "pillow", pythonVersion: "3.9.18" }
+       - { package: "registryspy", pythonVersion: "3.8.18" }
+
 
    - name: Install - Forensic Security tools
      apt:
@@ -169,11 +173,13 @@
      become_user: "{{ ansible_user }}"
      ansible.builtin.pip:
        name: 
-         - bbot # https://github.com/blacklanternsecurity/bbot
-         - holehe
-         - maigret
-       virtualenv: "$HOME/.pyenv/versions/3.9.18"
-       virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv 3.9.18"
+         - "{{ item.package }}"
+       virtualenv: "$HOME/.pyenv/versions/{{ item.pythonVersion }}"
+       virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv {{ item.pythonVersion }}"
+     with_items:
+       - { package: "bbot", pythonVersion: "3.9.18" }  # https://github.com/blacklanternsecurity/bbot
+       - { package: "holehe", pythonVersion: "3.9.18" }
+       - { package: "maigret", pythonVersion: "3.8.18" }
 
    - name: Install - Pentest tools
      apt:
@@ -233,7 +239,11 @@
      ansible.builtin.shell: docker update --restart=no $(docker ps -a -q) 2>/dev/null;
      ignore_errors: true
      
-
+   - name: copy src.txt as dest.txt in the same dir 
+     become_user: "{{ ansible_user }}"
+     copy:
+       src: "/home/{{ ansible_user }}/.bash_aliases"
+       dest: "/home/{{ ansible_user }}/.aliases"
 
    ## DEV
    #- name: upload cases
