@@ -59,7 +59,7 @@
   become_user: "{{ ansible_user }}"
   lineinfile:
     path: "/home/{{ ansible_user }}/.bashrc"
-    line: "export PATH=/home/{{ ansible_user }}/.pyenv/versions/{{item.version}}/bin:$PATH"
+    line: "export PATH=/home/{{ ansible_user }}/.pyenv/versions/{{item.pythonVersion}}/bin:$PATH"
     insertbefore: EOF
   with_items:
     - { pythonVersion: '2.7.18' }
