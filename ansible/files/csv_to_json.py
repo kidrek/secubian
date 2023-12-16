@@ -22,8 +22,11 @@ def csv_to_json(csvFilePath, jsonFilePath):
 # List all file with specific extension
 def list_file(currentPath:str, extension:str) -> list:
     logging.info(f"List all ({extension}) files in [{currentPath}] directory")
+    files = []
     os.chdir( currentPath )
-    return glob.glob( f"*/**.{extension}" )
+    files = files + (glob.glob(f"*.{extension}"))
+    files = files + (glob.glob(f"*/**.{extension}"))
+    return files
 
 # Set logging settings
 def loggingSetup(currentPath:str) -> None:
@@ -45,10 +48,10 @@ if __name__ == "__main__":
 
     # List all csv files in current directory
     for csvFilePath in list_file(cwd, 'csv'):
+        logging.info(f"Process file : {csvFilePath}")
         jsonFilePath = f"{csvFilePath[:-4]}.json"
         csv_to_json(csvFilePath, jsonFilePath)
 
 
     # Logging end of process
     logging.info('Process done')
-
