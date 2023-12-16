@@ -57,19 +57,26 @@
     - { regex: '^server\.port', value: 'server.port: 5601' }
     - { regex: '^server\.host', value: 'server.host: 0.0.0.0' }
 
-
 ############# FILEBEAT ###############
 ## Source : https://www.elastic.co/guide/en/beats/filebeat/7.17/setup-repositories.html
 
 - name: "OpenSearch | Add Filebeat"
   ansible.builtin.get_url:
     url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
-    dest: /usr/share/keyrings/elasticsearch-keyring
+    dest: /usr/share/keyrings/elastic-filebeat-keyring
 
 - name: "OpenSearch | Add Filebeat apt source"
   ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring] https://artifacts.elastic.co/packages/oss-7.x/apt stable main"
+    repo: "deb [signed-by=/usr/share/keyrings/elastic-filebeat-keyring] https://artifacts.elastic.co/packages/oss-7.x/apt stable main"
     state: present
+
+- name: "Opensearch | Limit filebeat package to version 7"
+  copy: 
+    dest: "/etc/apt/preferences.d/00filebeat"
+    content: |
+      Package: filebeat
+      Pin: version 7*
+      Pin-Priority: 1001
 
 - name: "OpenSearch | Update cache and Install Filebeat"
   ansible.builtin.apt:
@@ -100,17 +107,27 @@
     state: started
     enabled: true
 
+############# LOGSTASH ###############
 - name: "Logstash | Add GPG key"
   ansible.builtin.get_url:
     url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
-    dest: /usr/share/keyrings/elastic-keyring.gpg
+    dest: /usr/share/keyrings/elastic-logstash-keyring
 
 - name: "Logstash | Apt source"
   ansible.builtin.apt_repository:
     repo: "{{ item.repo }}"
     state: present
   with_items:
-    - { repo: "deb [signed-by=/usr/share/keyrings/elastic-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" }
+    - { repo: "deb [signed-by=/usr/share/keyrings/elastic-logstash-keyring] https://artifacts.elastic.co/packages/8.x/apt stable main" }
+  ignore_errors: true
+
+- name: "Logstash | Limit package version to 8"
+  copy: 
+    dest: "/etc/apt/preferences.d/00logstash"
+    content: |
+      Package: logstash
+      Pin: version 8*
+      Pin-Priority: 1001
 
 - name: "Logstash | Install package"
   ansible.builtin.apt:
@@ -118,11 +135,12 @@
       - logstash
     state: latest
     update_cache: true
+  ignore_errors: true
 
 - name: "Logstash | copy logstash.yml on remote host"
   ansible.builtin.template: 
     src  : ../../files/logstash/logstash.conf
-    dest : "/etc/logstash/logstash.conf"
+    dest : "/etc/logstash/conf.d/logstash.conf"
 
 - name: "Logstash | Enable Logstash service"
   ansible.builtin.systemd:
@@ -134,12 +152,17 @@
 - name : "Logstash | Find logstash-plugin binary"
   become: true
   find:
-    paths: /
+    paths: /usr/share/
     patterns: 'logstash-plugin'
+    file_type: "file"
     recurse: yes
   register: output
 
+- name : "Logstash | DEBUG show logstash-plugin binary filepath"
+  debug:
+    msg: "{{ output.files[0].path}}"
+
 - name: "Logstash | Install opensearch plugin"
   become: true
-  ansible.builtin.shell: "{{ item.path }} install logstash-output-opensearch"
-  with_items: "{{ output.files }}"
+  ansible.builtin.shell: "{{ item }} install logstash-output-opensearch"
+  with_items: "{{ output.files[0].path}}"
