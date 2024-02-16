@@ -4,6 +4,8 @@
 
 SECUBIAN est un projet de distribution Linux permettant de mettre à disposition des équipes de réponse à incident la majorité des outils nécessaires à la collecte, le traitement et l'analyse de données.
 
+![desktop](./img/desktop.png)
+
 Voici une liste non exhaustive des outils présents : 
 - Collecte : dd, dc3dd, tcpdump
 - Traitement : log2timeline, volatility2, volatility3
