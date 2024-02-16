@@ -12,7 +12,7 @@ Voici une liste non exhaustive des outils présents :
 - Analyse : Zircolite, Timesketch (amd64 pour le moment), OpenSearch, Capa, wireshark, règles SIGMA & YARA, MVT - Mobile Verification Toolkit
 - Suivi d'incident : DFIR IRIS Web
 
-Pour faciliter toutes ces phases, la distribution Linux intègre 2 projets dérivés nommés, secubian-wiki et secubian-JupyterNotebook. Ces 2 projets, présents dans le répertoire ```Documents``` de votre profil utilisateur, permettent d'apporter de la documentation et de la méthodologie disponibles même OFFLINE.
+Pour faciliter toutes ces phases, la distribution Linux intègre 2 projets dérivés nommés, [secubian-wiki](https://github.com/kidrek/secubian-wiki) et [secubian-JupyterNotebook](https://github.com/kidrek/secubian-JupyterNotebook). Ces 2 projets, présents dans le répertoire ```Documents``` de votre profil utilisateur, permettent d'apporter de la documentation et de la méthodologie disponibles même OFFLINE.
 
 Un répertoire ```Cases``` est également présent dans le répertoire ```Documents``` de votre profil utilisateur. Les preuves pourront y être déposées pour être analysées. Chacun des documents json, et csv (à terme) provenant de vos analyses et présents dans ce répertoire seront indexés dans l'instance OpenSearch (si celle-ci est démarrée) pour faciliter l'investigation.
 
