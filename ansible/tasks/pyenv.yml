@@ -1,23 +1,22 @@
-
 - name: "PyEnv | Install requirements"
   apt:
-    name: 
-      - build-essential 
-      - libssl-dev 
-      - zlib1g-dev 
-      - libbz2-dev 
-      - libreadline-dev 
-      - libsqlite3-dev 
-      - wget 
-      - curl 
-      - llvm 
-      - libncurses5-dev 
-      - libncursesw5-dev 
-      - xz-utils 
-      - tk-dev 
-      - libffi-dev 
-      - liblzma-dev 
-      - python3-openssl 
+    name:
+      - build-essential
+      - libssl-dev
+      - zlib1g-dev
+      - libbz2-dev
+      - libreadline-dev
+      - libsqlite3-dev
+      - wget
+      - curl
+      - llvm
+      - libncurses5-dev
+      - libncursesw5-dev
+      - xz-utils
+      - tk-dev
+      - libffi-dev
+      - liblzma-dev
+      - python3-openssl
       - git
     state: present
 
@@ -32,12 +31,13 @@
   ansible.builtin.shell: curl https://pyenv.run | bash
   when: not pyEnvFile.stat.exists
 
-- name: "PyEnv | Add to .bashrc"
+- name: "PyEnv | Add to .env"
   become_user: "{{ ansible_user }}"
   lineinfile:
-    path: "/home/{{ ansible_user }}/.bashrc"
+    path: "/home/{{ ansible_user }}/.env"
     line: "{{ item.name }}"
     insertbefore: EOF
+    create: true
   with_items:
     - { name: '## PYENV' }
     - { name: 'export PYENV_ROOT="$HOME/.pyenv"' }
@@ -48,25 +48,25 @@
 
 - name: "PyEnv | Install python different versions : 2.7.18, 3.8.18, 3.9.18"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: ". $HOME/.bashrc && $HOME/.pyenv/bin/pyenv install {{ item.pythonVersion }}"
+  ansible.builtin.shell: ". $HOME/.env && $HOME/.pyenv/bin/pyenv install {{ item.pythonVersion }}"
   with_items:
     - { pythonVersion: '2.7.18' }
     - { pythonVersion: '3.8.18' }
     - { pythonVersion: '3.9.18' }
   when: not pyEnvFile.stat.exists
 
-- name: "PyEnv | Modify PATH in .bashrc"
+- name: "PyEnv | Modify PATH in .env"
   become_user: "{{ ansible_user }}"
   lineinfile:
-    path: "/home/{{ ansible_user }}/.bashrc"
+    path: "/home/{{ ansible_user }}/.env"
     line: "export PATH=/home/{{ ansible_user }}/.pyenv/versions/{{item.pythonVersion}}/bin:$PATH"
     insertbefore: EOF
+    create: true
   with_items:
     - { pythonVersion: '2.7.18' }
     - { pythonVersion: '3.8.18' }
     - { pythonVersion: '3.9.18' }
   when: not pyEnvFile.stat.exists
-
 
 - name: "PyEnv | Set python 3.9.18 as default"
   become_user: "{{ ansible_user }}"
