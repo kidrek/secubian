@@ -21,7 +21,7 @@
 
 - name: "PyEnv | Install python {{ python_version }}"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: ". $HOME/.bashrc && $HOME/.pyenv/bin/pyenv install {{ python_version }}"
+  ansible.builtin.shell: ". $HOME/.env && $HOME/.pyenv/bin/pyenv install {{ python_version }}"
   ignore_errors: true
 
 - name: "Zircolite | Set python version"
@@ -35,10 +35,15 @@
     virtualenv: "$HOME/.pyenv/versions/{{ python_version }}"
     virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv {{ python_version }}"
 
-- name: "Zircolite | Bash - Add aliases"
+- name: "Zircolite | Update rules"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.shell: "cd {{ DFIR_toolsDir }}/analyse/tools/windows_evtx/Zircolite; $HOME/.pyenv/versions/{{ python_version }}/bin/python ./zircolite.py -U"
+  ignore_errors: true
+
+- name: "Zircolite | Add alias"
   become_user: "{{ ansible_user }}"
   lineinfile:
-    dest: "~/.bash_aliases"
+    dest: "~/.aliases"
     create: yes
     mode: 0644
     line: "alias {{ item.alias }}='{{ item.commandLine }}'"
