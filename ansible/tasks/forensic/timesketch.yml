@@ -84,10 +84,10 @@
 #    - arch == "amd64"
 #    - not timesketchDirectory.stat.exists
 
-- name: "Timesketch | Add BASH aliases"
+- name: "Timesketch | Add aliases"
   become_user: "{{ ansible_user }}"
   lineinfile:
-    dest: "~/.bash_aliases"
+    dest: "~/.aliases"
     create: yes
     mode: 0644
     line: 'alias timesketch="cd {{ DFIR_toolsDir }}/timesketch/timesketch; sudo docker-compose up"'
