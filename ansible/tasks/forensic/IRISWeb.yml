@@ -24,17 +24,33 @@
     line: 'IRIS_ADM_PASSWORD=administrator'
     regexp: "^IRIS_ADM_PASSWORD="
 
+- name: "IRIS Web | Set listening port"
+  become_user: "{{ ansible_user }}"
+  lineinfile:
+    dest: "{{ DFIR_toolsDir }}/report/iris-web/.env"
+    create: yes
+    mode: 0644
+    line: 'INTERFACE_HTTPS_PORT=7443'
+    regexp: "^INTERFACE_HTTPS_PORT="
+
+- name: "IRIS Web | Remove debug port"
+  become_user: "{{ ansible_user }}"
+  lineinfile:
+    dest: "{{ DFIR_toolsDir }}/report/iris-web/docker-compose.yml"
+    line: '- "127.0.0.1:7000:8000"'
+    regexp: '(- "127.0.0.1:8000:8000")'
+
 - name: "IRIS Web | Build Docker"
   become_user: "{{ ansible_user }}"
   ansible.builtin.shell: cd {{ DFIR_toolsDir }}/report/iris-web; sudo service docker restart; sudo docker-compose pull; sudo docker-compose build;
 
-- name: "IRIS Web | Add BASH aliases"
+- name: "IRIS Web | Add aliases"
   become_user: "{{ ansible_user }}"
   lineinfile:
-    dest: "~/.bash_aliases"
+    dest: "~/.aliases"
     create: yes
     mode: 0644
-    line: 'alias iris-web="cd {{ DFIR_toolsDir }}/report/iris-web; sudo docker-compose up"'
+    line: 'alias iris-web="cd {{ DFIR_toolsDir }}/report/iris-web; sudo docker-compose up -d"'
     regexp: "^alias iris-web="
 
 - name: "IRIS Web | Create reports folder"
