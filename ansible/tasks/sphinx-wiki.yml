@@ -82,10 +82,10 @@
   become_user: "{{ ansible_user }}"
   shell: "cd {{ documentationDir }}/wiki && . __env__/bin/activate && make html"
 
-- name: "Bash | Add alias"
+- name: "Sphinx documentation | Add alias"
   become_user: "{{ ansible_user }}"
   lineinfile:
-    dest: "~/.bash_aliases"
+    dest: "~/.aliases"
     create: yes
     mode: 0644
     line: "alias update-wiki='cd {{ documentationDir }}/wiki/source; git pull; cd -; cd {{ documentationDir }}/wiki/ && . __env__/bin/activate && make html; cd -'"
