@@ -77,38 +77,38 @@
 
 ## http://blog.jpcert.or.jp/2016/12/a-new-tool-to-d-d6bc.html
 ## https://blog.jpcert.or.jp/2018/08/volatility-plugin-for-detecting-cobalt-strike-beacon.html
-- name: Artifact Analysis tool from JP-CERT
+- name: "Volatility | Artifact Analysis tool from JP-CERT"
   become_user: "{{ ansible_user }}"
   ansible.builtin.git:
     repo: https://github.com/JPCERTCC/aa-tools.git
     dest: "{{ DFIR_toolsDir }}/data_processing/volatility/aa-tools"
     force: yes
 
-- name: Autoruns
+- name: "Volatility | module Autoruns"
   become_user: "{{ ansible_user }}"
   ansible.builtin.git:
     repo: https://github.com/tomchop/volatility-autoruns
     dest: "{{ DFIR_toolsDir }}/data_processing/volatility/volatilityplugins/volatility-autoruns"
     force: yes
 
-- name: Bitlocker keys retrieving
+- name: "Volatility | module Bitlocker keys retrieving"
   become_user: "{{ ansible_user }}"
   ansible.builtin.git:
     repo: https://github.com/elceef/bitlocker
     dest: "{{ DFIR_toolsDir }}/data_processing/volatility/volatilityplugins/elceef-bitlocker"
     force: yes
 
-- name: Malware config extractor - plugx, andromeda
+- name: "Volatility | module Malware config extractor - plugx, andromeda"
   become_user: "{{ ansible_user }}"
   ansible.builtin.git:
     repo: https://github.com/arbor-jjones/volatility_plugins.git
     dest: "{{ DFIR_toolsDir }}/data_processing/volatility/plugx+andromeda"
     force: yes
 
-- name: "Bash | Add aliases"
+- name: "Volatility | Add aliases"
   become_user: "{{ ansible_user }}"
   lineinfile:
-    dest: "~/.bash_aliases"
+    dest: "~/.aliases"
     create: yes
     mode: 0644
     line: "alias {{ item.alias }}='{{ item.commandLine }}'"
