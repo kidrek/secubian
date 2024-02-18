@@ -12,6 +12,7 @@
         #      - openjdk-11-jdk 
       - libewf-dev 
       - libjson-c-dev
+      - libre2-dev
       - libssl-dev 
       - libxml2-dev 
       - libtool
