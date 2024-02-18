@@ -1,8 +1,8 @@
 
-- name: "Log2timeline | Add bash aliases"
+- name: "Log2timeline | Add aliases"
   become_user: "{{ ansible_user }}"
   lineinfile:
-    dest: "~/.bash_aliases"
+    dest: "~/.aliases"
     create: yes
     mode: 0644
     line: "alias {{ item.alias }}='{{ item.commandLine }}'"
