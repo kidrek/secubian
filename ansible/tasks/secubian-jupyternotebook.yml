@@ -37,12 +37,23 @@
     virtualenv: "$HOME/.pyenv/versions/{{ python_version }}"
     virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv {{ python_version }}"
 
-
-- name: "Bash | Add alias"
+- name: "Jupyter Notebook | Add alias"
   become_user: "{{ ansible_user }}"
   lineinfile:
-    dest: "~/.bash_aliases"
+    dest: "~/.aliases"
     create: yes
     mode: 0644
     line: "alias update-jupyter-notebook='cd {{ playbooksDir }}/JupyterNotebook; git pull'"
     regexp: "^alias update-jupyter-notebook="
+
+- name: "Jupyter Notebook | set service configuration"
+  ansible.builtin.template:
+    src  : "../files/jupyter-notebook/jupyter-notebook.service"
+    dest : "/etc/systemd/system/jupyter-notebook.service"
+    mode: 0640
+
+- name: "Jupyter Notebook | Enable service"
+  ansible.builtin.systemd:
+    name: jupyter-notebook
+    state: started
+    enabled: true
