@@ -19,10 +19,10 @@
   with_items:
     - { repo: "https://github.com/mandiant/capa-rules.git", dest: "{{ DFIR_toolsDir }}/analyse/rules/flare-capa-rules" }
 
-- name: "FLARE CAPA | Add BASH aliases"
+- name: "FLARE CAPA | Add aliases"
   become_user: "{{ ansible_user }}"
   lineinfile:
-    dest: "~/.bash_aliases"
+    dest: "~/.aliases"
     create: yes
     mode: 0644
     line: 'alias capa="capa -r {{ DFIR_toolsDir }}/analyse/rules/flare-capa-rules"'
