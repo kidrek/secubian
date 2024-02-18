@@ -10,3 +10,15 @@
   fields:
     type: secubianDFIR
     file.type: json
+
+#  json.keys_under_root: true
+#  json.overwrite_keys: true
+#  json.add_error_key: true
+#  json.expand_keys: true
+
+  parsers:
+  - multiline:
+      type: pattern
+      pattern: '^({|\[)[^\n]+(}|])$'
+      negate: true
+      match: before
