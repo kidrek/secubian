@@ -48,6 +48,8 @@
    - include: tasks/vscode.yml
    - include: tasks/firefox.yml
    - include: tasks/docker.yml
+   - include: tasks/homer.yml
+   - include: tasks/portainer.yml
    - include: tasks/secubian-jupyternotebook.yml
    - include: tasks/sphinx-wiki.yml
    - include: tasks/detection/rules/sigma.yml
@@ -60,6 +62,7 @@
    - include: tasks/forensic/didierStevens.yml
    - include: tasks/forensic/IRISWeb.yml
    - include: tasks/forensic/log2timeline.yml
+   - include: tasks/forensic/loki.yml
    - include: tasks/forensic/mvt.yml
    - include: tasks/forensic/opensearch.yml
    - include: tasks/forensic/timesketch.yml
@@ -129,6 +132,7 @@
          - libewf-dev
          - libguestfs-tools
          - libvshadow-utils
+         - pst-utils
          - python3-ssdeep
          - scalpel
          - sleuthkit
@@ -224,10 +228,10 @@
       group: "{{ ansible_user }}" 
       mode: 0644
 
-   - name: "Bash | Add aliases"
+   - name: "SHELL | Add aliases"
      become_user: "{{ ansible_user }}"
      lineinfile:
-       dest: "~/.bash_aliases"
+       dest: "~/.aliases"
        create: yes
        mode: 0644
        line: "alias {{ item.alias }}='{{ item.commandLine }}'"
@@ -239,11 +243,9 @@
      ansible.builtin.shell: docker update --restart=no $(docker ps -a -q) 2>/dev/null;
      ignore_errors: true
      
-   - name: copy src.txt as dest.txt in the same dir 
-     become_user: "{{ ansible_user }}"
-     copy:
-       src: "/home/{{ ansible_user }}/.bash_aliases"
-       dest: "/home/{{ ansible_user }}/.aliases"
+   - name: Remove useless packages from the cache
+     ansible.builtin.apt:
+       autoclean: yes
 
    ## DEV
    #- name: upload cases
