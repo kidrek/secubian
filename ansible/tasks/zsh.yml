@@ -1,4 +1,3 @@
-
 - name: "ZSH | Install package"
   apt:
     name: 
@@ -27,4 +26,13 @@
     create: yes
     mode: 0644
     line: "if [ -f ~/.aliases ]; then . ~/.aliases; fi"
+    insertafter: EOF
+
+- name: "Zsh | Add .env"
+  become_user: "{{ ansible_user }}"
+  lineinfile:
+    dest: "~/.zshrc"
+    create: yes
+    mode: 0644
+    line: "if [ -f ~/.env ]; then . ~/.env; fi"
     insertafter: EOF
