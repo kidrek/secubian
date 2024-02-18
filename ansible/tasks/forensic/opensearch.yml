@@ -13,6 +13,7 @@
       - lsb-release 
       - ca-certificates 
       - curl 
+      - default-jre
       - gnupg2
     state: latest
     update_cache: true
@@ -143,11 +144,11 @@
     src  : ../../files/logstash/logstash.conf
     dest : "/etc/logstash/conf.d/logstash.conf"
 
-- name: "Logstash | Enable Logstash service"
-  ansible.builtin.systemd:
-    name: logstash
-    state: started
-    enabled: true
+#- name: "Logstash | Enable Logstash service"
+#  ansible.builtin.systemd:
+#    name: logstash
+#    state: started
+#    enabled: true
 
 ## https://www.middlewareinventory.com/blog/ansible-find-examples/
 - name : "Logstash | Find logstash-plugin binary"
