@@ -34,10 +34,10 @@
     - { src: "https://downloads.volatilityfoundation.org/volatility3/symbols/mac.zip"}
 
 
-- name: "Volatility3 | Add bash aliases"
+- name: "Volatility3 | Add aliases"
   become_user: "{{ ansible_user }}"
   lineinfile:
-    dest: "~/.bash_aliases"
+    dest: "~/.aliases"
     create: yes
     mode: 0644
     line: "alias {{ item.alias }}='{{ item.commandLine }}'"
