@@ -55,10 +55,10 @@
 
 # Add Alias
 ## Remove all container : docker ps -aq | xargs docker stop | xargs docker rm
-- name: "Docker | Add BASH aliases"
+- name: "Docker | Add Shell aliases"
   become_user: "{{ ansible_user }}"
   lineinfile:
-    dest: "~/.bash_aliases"
+    dest: "~/.aliases"
     create: yes
     mode: 0644
     line: 'alias {{ item.alias }}="{{ item.commandLine }}"'
