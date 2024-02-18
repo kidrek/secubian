@@ -25,7 +25,7 @@
 - name: "Firefox | Copy user preferences"
   #copy: src=../files/firefox_policies.json dest=/usr/share/firefox-esr/distribution/policies.json owner=root group=root mode=755
   ansible.builtin.template: 
-    src  : ../files/firefox_policies.json 
+    src  : ../files/firefox/firefox_policies.json 
     dest : "{{ firefox_policies_path }}/policies.json"
   # dest : /usr/share/firefox-esr/distribution/policies.json 
 
