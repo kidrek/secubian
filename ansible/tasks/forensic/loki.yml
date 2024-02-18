@@ -24,11 +24,11 @@
   become_user: "{{ ansible_user }}"
   ansible.builtin.shell: cd {{ DFIR_toolsDir }}/Loki; $HOME/.pyenv/versions/{{ python_version }}/bin/python ./loki-upgrader.py;
 
-- name: "Loki | Add BASH aliases"
+- name: "Loki | Add aliases"
   become_user: "{{ ansible_user }}"
   lineinfile:
-    dest: "~/.bash_aliases"
+    dest: "~/.aliases"
     create: yes
     mode: 0644
-    line: 'alias loki="$HOME/.pyenv/versions/{{ python_version }}/bin/python {{ DFIR_toolsDir }}/Loki/loki.py"'
-    regexp: "^alias loki="
+    line: 'alias loki.py="cd {{ DFIR_toolsDir }}; $HOME/.pyenv/versions/{{ python_version }}/bin/python ./Loki/loki.py"'
+    regexp: "^alias loki.py="
