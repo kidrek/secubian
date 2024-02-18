@@ -16,10 +16,10 @@
 - name: "DidierStevensSuite | set executable"
   ansible.builtin.shell: chmod +x {{ DFIR_toolsDir }}/data_processing/DidierStevensSuite/*.py
 
-- name: "DidierStevensSuite | Bash - Add aliases"
+- name: "DidierStevensSuite | Add PATH"
   become_user: "{{ ansible_user }}"
   lineinfile:
-    dest: "~/.bashrc"
+    dest: "~/.env"
     create: yes
     mode: 0644
     line: "export PATH=$PATH:{{ DFIR_toolsDir }}/data_processing/DidierStevensSuite"
