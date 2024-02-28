@@ -1,0 +1,44 @@
+
+## LibreTranslate / https://github.com/LibreTranslate/LibreTranslate
+- name: "LibreTranslate | set PythonVersion"
+  ansible.builtin.set_fact:
+    python_version : "3.9.18" 
+
+- name: "LibreTranslate | Install module"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.pip:
+    name: 
+      - libretranslate
+    virtualenv: "$HOME/.pyenv/versions/{{ python_version }}"
+    virtualenv_command: $HOME/.pyenv/bin/pyenv virtualenv {{ python_version }}
+
+## Execute LibreTranslate in background to download all models
+# ref : https://cheat.readthedocs.io/en/latest/ansible/background.html
+- name: "LibreTranslate | update model"
+  become_user: "{{ ansible_user }}"
+  shell:
+    "/home/{{ ansible_user }}/.pyenv/versions/{{ python_version }}/bin/libretranslate" 
+  async: 36000 # Maximum allowed time in Seconds
+  poll: 0 # Polling Interval in Seconds
+  register: libretranslate_update
+
+## Then, wait server is up and running to kill it
+- name: "LibreTranslate | Wait server is up and running"
+  ansible.builtin.uri:
+    url: http://127.0.0.1:5000
+  register: result
+  until: "result.status == 200"
+  retries: 10
+  delay: 60
+
+- name: "LibreTranslate | set service configuration"
+  ansible.builtin.template:
+    src  : "../files/libretranslate/libretranslate.service"
+    dest : "/etc/systemd/system/libretranslate.service"
+    mode: 0640
+
+- name: "LibreTranslate | Enable service"
+  ansible.builtin.systemd:
+    name: libretranslate
+    state: started
+    enabled: true

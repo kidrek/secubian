@@ -1,0 +1,13 @@
+[Unit]
+    Description=LibreTranslate
+    After=network.target
+[Service]
+    Type=simple
+    PIDFile=/var/run/libretranslate.pid
+    Environment="PATH=/home/{{ ansible_user }}/.pyenv/plugins/pyenv-virtualenv/shims:/home/{{ ansible_user }}/.pyenv/shims:/home/{{ ansible_user }}/.pyenv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    ExecStart=/home/{{ ansible_user }}/.pyenv/shims/libretranslate
+    User={{ ansible_user }}
+    Group={{ ansible_user }}
+    WorkingDirectory=/home/{{ ansible_user }}
+[Install]
+    WantedBy=multi-user.target
