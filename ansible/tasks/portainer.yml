@@ -36,7 +36,7 @@
      - "portainer_data:/data"
      - "/var/run/docker.sock:/var/run/docker.sock"
     ports:
-     - "8000:8000"
+     - "9000:8000"
      - "9443:9443"
 
 - name: "Portainer | Wait docker is up and running"
