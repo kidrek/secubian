@@ -5,7 +5,7 @@
     return_content: true
   register: latest_version
 
-- name: Prints two lines of messages, but only if there is an environment value set
+- name: Prints velociraptor version
   ansible.builtin.debug:
     msg:
     - "La dernière version de Velociraptor est : {{ latest_version.json.tag_name }}"
@@ -17,3 +17,19 @@
 
 - name: "Velociraptor - Set executable"
   ansible.builtin.shell: chmod +x /usr/bin/velociraptor
+
+## Generate config
+#velociraptor config generate --no-interactive | tee server.config.yaml
+- name: "Velociraptor - Generate config"
+  ansible.builtin.shell: cd /opt/; velociraptor config generate --no-interactive | tee server.config.yaml
+
+## Create service
+# velociraptor --config server.config.yaml debian server
+# dpkg -i velociraptor_server_..._arm64.deb
+# sudo -u velociraptor velociraptor --config /etc/velociraptor/server.config.yaml  user add secubian --role=administrator secubian
+- name: "Velociraptor - Create service"
+  ansible.builtin.shell: cd /opt/; velociraptor --config server.config.yaml debian server; dpkg -i velociraptor_server_*.deb
+
+- name: "Velociraptor - Create user"
+  ansible.builtin.shell: sudo -u velociraptor velociraptor --config /etc/velociraptor/server.config.yaml  user add secubian --role=administrator secubian
+
