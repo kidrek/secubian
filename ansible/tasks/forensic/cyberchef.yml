@@ -19,22 +19,26 @@
     mode: 0755
 
 - name: "CyberChef | Create directory"
-  become_user: "{{ ansible_user }}"
   file:
-    path: "{{ DFIR_toolsDir }}/data_processing/Cyberchef/"
+    path: "/var/www/html/cyberchef/"
     state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: 0775
+    owner: "www-data"
+    group: "www-data"
+    mode: 0500
 
 - name: "CyberChef | Extract html file"
-  become_user: "{{ ansible_user }}"
   ansible.builtin.unarchive:
     src: "{{ DFIR_toolsDir }}/data_processing/{{ cyberchef_latest_tag_name }}.zip"
-    dest: "{{ DFIR_toolsDir }}/data_processing/Cyberchef/"
+    dest: "/var/www/html/cyberchef/"
+    owner: "www-data"
+    group: "www-data"
+    mode: 0500
 
 - name: "CyberChef | Create symbolic link"
   file:
-    src: "{{ DFIR_toolsDir }}/data_processing/Cyberchef/CyberChef_{{ cyberchef_latest_tag_name }}.html"
-    dest: "{{ DFIR_toolsDir }}/data_processing/Cyberchef/Cyberchef.html"
+    src: "/var/www/html/cyberchef/CyberChef_{{ cyberchef_latest_tag_name }}.html"
+    dest: "/var/www/html/cyberchef/index.html"
     state: link
+    owner: "www-data"
+    group: "www-data"
+    mode: 0500
