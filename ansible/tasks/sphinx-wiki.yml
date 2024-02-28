@@ -82,11 +82,15 @@
   become_user: "{{ ansible_user }}"
   shell: "cd {{ documentationDir }}/wiki && . __env__/bin/activate && make html"
 
+- name: "Sphinx documentation | copy built files in /var/www/html/"
+  ansible.builtin.shell: cd {{ documentationDir }}/wiki; cp -rf ./build/html /var/www/html/wiki; chown -R www-data:www-data /var/www/html/wiki; chmod 0500 -R  /var/www/html/wiki;
+  ignore_errors: true
+
 - name: "Sphinx documentation | Add alias"
   become_user: "{{ ansible_user }}"
   lineinfile:
     dest: "~/.aliases"
     create: yes
     mode: 0644
-    line: "alias update-wiki='cd {{ documentationDir }}/wiki/source; git pull; cd -; cd {{ documentationDir }}/wiki/ && . __env__/bin/activate && make html; cd -'"
+    line: "alias update-wiki='cd {{ documentationDir }}/wiki/source; git pull; cd -; cd {{ documentationDir }}/wiki/ && . __env__/bin/activate && make html; cp -rf ./build/html /var/www/html/wiki; chown -R www-data:www-data /var/www/html/wiki; cd -'"
     regexp: "^alias update-wiki="
