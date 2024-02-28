@@ -1,0 +1,167 @@
+---
+# Homepage configuration
+# See https://fontawesome.com/icons for icons options
+
+title: "SECURITY INVESTIGATION"
+subtitle: ">_"
+logo: "/assets/icons/secubian_logo.png"
+icon: "" # Optional icon
+
+header: true
+footer: false
+
+stylesheet:
+  - "assets/custom.css"
+
+columns: 5
+# Optional theme customization
+theme: default
+colors:
+  light:
+    highlight-primary: "#2b2b2b"
+    highlight-secondary: "#ee1c39"
+    highlight-hover: "#5a95f5"
+    background: "#f5f5f5"
+    card-background: "#ffffff"
+    text: "#363636"
+    text-header: "#ffffff"
+    text-title: "#303030"
+    text-subtitle: "#424242"
+    card-shadow: rgba(0, 0, 0, 0.1)
+    link: "#e33953"
+    link-hover: "#e33953"
+    link-hover-background: "#fff"
+  dark:
+    highlight-primary: "#2b2b2b"
+    highlight-secondary: "#ee1c39"
+    highlight-hover: "#5a95f5"
+    background: "#2b2b2b"
+    card-background: "#2b2b2b"
+    text: "#e33953"
+    text-header: "#ffffff"
+    text-title: "#fafafa"
+    text-subtitle: "#f5f5f5"
+    card-shadow: rgba(0, 0, 0, 0.4)
+    link: "#e33953"
+    link-hover: "#e33953"
+    link-hover-background: "#2b2b2b"
+
+# Optional navbar
+# links: [] # Allows for navbar (dark mode, layout, and search) without any links
+links:
+  - name: "Contribute"
+    icon: "fab fa-github"
+    url: "https://github.com/kidrek/secubian"
+    target: "_blank" # optional html a tag target attribute
+  - name: "Wiki"
+    icon: "fas fa-book"
+    url: "http://localhost/wiki/index.html"
+    target: "_blank" # optional html a tag target attribute
+
+# Services
+# First level array represent a group.
+# Leave only a "items" key if not using group (group name, icon & tagstyle are optional, section separation will not be displayed).
+services:
+  - name: "PLAYBOOKS"
+    icon: "fas fa-desktop"
+    items:
+      - name: "Memory dump analysis"
+        tag: "app"
+        url: "http://localhost:8888/notebooks/dfir/memory_analysis_windows_volatility3.ipynb"
+        target: "_blank" # optional html a tag target attribute
+        logo: "/assets/icons/jupyter.png"
+      - name: "Microsoft Office file analysis"
+        tag: "app"
+        url: "http://localhost:8888/notebooks/dfir/microsoft_office_analysis.ipynb"
+        target: "_blank" # optional html a tag target attribute
+        logo: "/assets/icons/jupyter.png"
+      - name: "PCAP file analysis"
+        tag: "app"
+        url: "http://localhost:8888/notebooks/dfir/pcap_analysis.ipynb"
+        target: "_blank" # optional html a tag target attribute
+        logo: "/assets/icons/jupyter.png"
+      - name: "Pdf file analysis"
+        tag: "app"
+        url: "http://localhost:8888/notebooks/dfir/pdf_analysis.ipynb"
+        target: "_blank" # optional html a tag target attribute
+        logo: "/assets/icons/jupyter.png"
+
+  - name: "INCIDENT HANDLING"
+    icon: "fas fa-desktop"
+    items:
+      - name: "DFIR Iris"
+        logo: "/assets/icons/dfir_iris.png"
+        tag: "app"
+        url: "https://127.0.0.1:7443/"
+        target: "_blank" # optional html a tag target attribute
+        type: Ping
+        method: "get"        
+      - name: "DRAW.io"
+        logo: "/assets/icons/drawio.png"
+        tag: "app"
+        url: "http://127.0.0.1:6080/"
+        target: "_blank" # optional html a tag target attribute
+        type: Ping
+        method: "get"        
+
+  - name: "COLLECT"
+    icon: "fas fa-save"
+    items:
+      - name: "Velociraptor"
+        logo: "/assets/icons/velociraptor.png"
+        tag: "app"
+        url: "https://127.0.0.1:8889/app/index.html"
+        target: "_blank" # optional html a tag target attribute
+        type: Ping
+        method: "head"
+
+  - name: "ANALYSE"
+    icon: "fas fa-desktop"
+    items:
+      - name: "Opensearch"
+        logo: "/assets/icons/opensearch.png"
+        tag: "app"
+        url: "http://127.0.0.1:5601/"
+        target: "_blank" # optional html a tag target attribute
+        type: Ping
+        method: "get"
+      - name: "Timesketch"
+        logo: "/assets/icons/timesketch.png"
+        tag: "app"
+        url: "http://127.0.0.1:5601/"
+        target: "_blank" # optional html a tag target attribute
+        type: Ping
+        method: "get"
+      - name: "Arkime (PCAP)"
+        logo: "/assets/icons/arkime.png"
+        tag: "app"
+        url: "https://s1em_hostname/arkime/"
+        target: "_blank" # optional html a tag target attribute     
+
+  - name: "TOOLS"
+    icon: "fas fa-tools"
+    items:
+      - name: "Portainer / Docker"
+        logo: "/assets/icons/portainer.svg"
+        tag: "admin"
+        url: "https://127.0.0.1:9443"
+        target: "_blank"
+        type: Ping
+        method: "head"
+      - name: "CyberChef"
+        logo: "/assets/icons/cyberchef.png"
+        tag: "app"
+        url: "http://localhost/cyberchef/"
+        target: "_blank" # optional html a tag target attribute
+      - name: "LibreTranslate"
+        logo: "/assets/icons/libretranslate.png"
+        tag: "site"
+        tagstyle: "is-success"
+        url: "http://localhost:5000"
+        target: "_blank" # optional html a tag target attribute
+      - name: "StartMe - My bookmarks"
+        logo: "/assets/icons/startme.png"
+        tag: "site"
+        tagstyle: "is-success"
+        url: "https://start.me/p/6r66da/cybersecurity"
+        target: "_blank" # optional html a tag target attribute
