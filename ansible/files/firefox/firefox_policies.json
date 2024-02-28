@@ -23,11 +23,11 @@
         },
         {
           "name": "Documentation - Secubian",
-          "url": "file://{{ documentationDir }}/wiki/build/html/index.html"
+          "url": "http://localhost/wiki/"
         },
         {
           "name": "Cyberchef",
-          "url": "file://{{ DFIR_toolsDir }}/data_processing/Cyberchef/Cyberchef.html"
+          "url": "http://localhost/cyberchef/"
         },
         {
           "name": "DFIR",
@@ -244,9 +244,6 @@
           "installation_mode": "normal_installed"
         }
       },
-      "Homepage": {
-        "StartPage": "file://{{ documentationDir }}/wiki/build/html/index.html"
-      },
       "NewTabPage": false,
       "NoDefaultBookmarks": true,
       "OverrideFirstRunPage": "",
@@ -263,7 +260,7 @@
         "browser.search.defaulturl": "https://duckduckgo.com/?q=",
         "// PREF: Disable search suggestions in the search bar":"",
         "browser.search.suggest.enabled":	false,
-        "browser.startup.homepage":"about:blank",
+        "browser.startup.homepage":"http://localhost:8080",
         "browser.urlbar.suggest.openpage": false,
         "browser.urlbar.placeholderName": "DuckDuckGo",
         "browser.urlbar.placeholderName.private": "DuckDuckGo",
