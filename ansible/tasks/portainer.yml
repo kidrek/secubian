@@ -1,0 +1,93 @@
+# Portainer is a docker web manager
+## This will start Portainer on port 8000/http and 9443/https.
+
+- name: "Portainer | set portainer_username"
+  ansible.builtin.set_fact:
+    portainer_user : "secubian" 
+
+- name: "Portainer | set portainer_password"
+  ansible.builtin.set_fact:
+    portainer_passwd : "secubiansecubian" 
+
+- name: "Portainer | Create volume"
+  community.docker.docker_volume:
+    name: portainer_data
+
+- name: "Portainer | Create Docker container"
+  community.docker.docker_container:
+    name: portainer
+    image: portainer/portainer-ce
+    state: present
+    recreate: true
+    exposed_ports:
+      - 8000
+      - 9443
+    volumes:
+      - /portainer_data
+
+- name: "Portainer | Run docker container"
+  community.docker.docker_container:
+    name: portainer
+    image: portainer/portainer-ce
+    state: started
+    restart: true
+    restart_policy: "always"
+    volumes:
+     - "portainer_data:/data"
+     - "/var/run/docker.sock:/var/run/docker.sock"
+    ports:
+     - "8000:8000"
+     - "9443:9443"
+
+- name: "Portainer | Wait docker is up and running"
+  ansible.builtin.uri:
+    url: https://127.0.0.1:9443
+    validate_certs: false
+  register: result
+  until: "result.status == 200"
+  retries: 5
+  delay: 10
+
+# Reference : 
+# - https://docs.portainer.io/admin/environments/add/api
+# - https://github.com/dcjulian29/ansible-role-portainer/blob/main/tasks/main.yml
+- name: "Portainer | Configure admin user password"
+  ansible.builtin.uri:
+    url: "https://127.0.0.1:9443/api/users/admin/init"
+    validate_certs: false
+    method: POST
+    return_content: true
+    body_format: json
+    body: '{ "Username":"{{ portainer_user }}", "Password":"{{ portainer_passwd }}"}'
+    status_code: 200, 409
+  when: portainer_user and portainer_passwd is defined
+
+- name: "Portainer | Generate authentication token"
+  ansible.builtin.uri:
+    url: "https://127.0.0.1:9443/api/auth"
+    validate_certs: false
+    method: POST
+    return_content: true
+    body_format: json
+    body: '{"Username": "secubian", "Password": "secubiansecubian"}'
+  register: auth_token
+  when: portainer_user and portainer_passwd is defined
+
+- name: "Portainer | DEBUG - Print token"
+  ansible.builtin.debug:
+    msg: "Portainer token: {{ auth_token.json.jwt }}"
+  when: auth_token is defined
+
+- name: "Portainer | Create a local environment"
+  ansible.builtin.uri:
+    url: "https://127.0.0.1:9443/api/endpoints"
+    validate_certs: false
+    method: POST
+    return_content: true
+    headers:
+      Authorization: "Bearer {{ auth_token.json.jwt }}" 
+    body_format: form-urlencoded 
+    body:
+      Name: "secubian"
+      EndpointCreationType: 1
+  when: auth_token
