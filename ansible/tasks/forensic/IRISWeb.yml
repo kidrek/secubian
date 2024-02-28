@@ -37,12 +37,12 @@
   become_user: "{{ ansible_user }}"
   lineinfile:
     dest: "{{ DFIR_toolsDir }}/report/iris-web/docker-compose.yml"
-    line: '- "127.0.0.1:7000:8000"'
+    line: '      - "127.0.0.1:7000:8000"'
     regexp: '(- "127.0.0.1:8000:8000")'
 
 - name: "IRIS Web | Build Docker"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/report/iris-web; sudo service docker restart; sudo docker-compose pull; sudo docker-compose build;
+  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/report/iris-web; sudo service docker restart; sudo docker-compose pull; sudo docker-compose build; docker-compose up -d;
 
 - name: "IRIS Web | Add aliases"
   become_user: "{{ ansible_user }}"
@@ -52,6 +52,20 @@
     mode: 0644
     line: 'alias iris-web="cd {{ DFIR_toolsDir }}/report/iris-web; sudo docker-compose up -d"'
     regexp: "^alias iris-web="
+
+## Then, wait server is up and running to kill it
+- name: "IRIS Web | Wait server is up and running"
+  ansible.builtin.uri:
+    url: https://127.0.0.1:7443
+    validate_certs: false
+  register: result
+  until: "result.status == 200"
+  retries: 10
+  delay: 60
+
+- name: "IRIS Web | Docker restart policy"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.shell: sudo docker update --restart=always iriswebapp_app iriswebapp_db iriswebapp_nginx iriswebapp_rabbitmq iriswebapp_worker;
 
 - name: "IRIS Web | Create reports folder"
   become_user: "{{ ansible_user }}"
