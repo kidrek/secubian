@@ -48,10 +48,12 @@
    - include: tasks/vscode.yml
    - include: tasks/firefox.yml
    - include: tasks/docker.yml
+   - include: tasks/draw_io.yml
    - include: tasks/homer.yml
    - include: tasks/portainer.yml
    - include: tasks/secubian-jupyternotebook.yml
    - include: tasks/sphinx-wiki.yml
+   - include: tasks/libretranslate.yml
    - include: tasks/detection/rules/sigma.yml
    - include: tasks/detection/rules/yara.yml
    - include: tasks/detection/suricata.yml
@@ -239,9 +241,9 @@
      with_items:
        - { alias: "ll", commandLine: "ls -la" }
 
-   - name: Docker disable auto start all containers
-     ansible.builtin.shell: docker update --restart=no $(docker ps -a -q) 2>/dev/null;
-     ignore_errors: true
+   #- name: Docker disable auto start all containers
+   #  ansible.builtin.shell: docker update --restart=no $(docker ps -a -q) 2>/dev/null;
+   #  ignore_errors: true
      
    - name: Remove useless packages from the cache
      ansible.builtin.apt:

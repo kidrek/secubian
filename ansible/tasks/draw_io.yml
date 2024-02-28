@@ -1,0 +1,10 @@
+- name: "Draw.io | Run docker container"
+  community.docker.docker_container:
+    name: drawio
+    image: jgraph/drawio:latest
+    state: started
+    restart: true
+    restart_policy: "always"
+    ports:
+     - "6080:8080"
+     - "6443:8443"
