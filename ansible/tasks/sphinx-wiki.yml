@@ -34,6 +34,7 @@
     name: 
       - furo
       - sphinx-rtd-theme
+      - sphinx-book-theme
     virtualenv: "{{ documentationDir }}/wiki/__env__"
 
 - name: "Sphinx documentation | create sphinx project"
@@ -46,7 +47,7 @@
     dest: "{{ documentationDir }}/wiki/source/conf.py"
     create: yes
     mode: 0644
-    line: "html_theme = 'sphinx_rtd_theme'"
+    line: "html_theme = 'sphinx-book-theme'"
     regexp: "^html_theme ="
 
 - name: "Sphinx documentation | add extensions in configuration file"
