@@ -28,7 +28,43 @@
 
 - name: "Timesketch | Execute deploy script"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/timesketch; yes N | sudo ./deploy_timesketch.sh --start-container;
+  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/timesketch; yes N | sudo ./deploy_timesketch.sh;
+  when: 
+    - arch == "amd64"
+    - not timesketchDirectory.stat.exists
+
+- name: "Timesketch | Change ownership"
+  ansible.builtin.file:
+    state: directory
+    path: "{{ DFIR_toolsDir }}/timesketch"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    recurse: yes
+  when: 
+    - arch == "amd64"
+    - not timesketchDirectory.stat.exists
+
+- name: "Timesketch | modify HTTPS TCP Port"
+  lineinfile:
+    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/config.env"
+    line: 'NGINX_HTTPS_PORT=5443'
+    regexp: "^NGINX_HTTPS_PORT="
+  when: 
+    - arch == "amd64"
+    - not timesketchDirectory.stat.exists
+
+- name: "Timesketch | modify HTTP TCP Port"
+  lineinfile:
+    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/config.env"
+    line: 'NGINX_HTTP_PORT=5080'
+    regexp: "^NGINX_HTTP_PORT="
+  when: 
+    - arch == "amd64"
+    - not timesketchDirectory.stat.exists
+
+- name: "Timesketch | Start docker"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/timesketch; docker-compose up -d;
   when: 
     - arch == "amd64"
     - not timesketchDirectory.stat.exists
@@ -36,29 +72,10 @@
 - name: "Timesketch | Check if container is running"
   wait_for:
     host: "127.0.0.1"
-    port: 443
+    port: 5080
   when: 
     - arch == "amd64"
     - not timesketchDirectory.stat.exists
-
-#- name: "Timesketch | modify TCP Port"
-#  lineinfile:
-#    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/config.env"
-#    line: 'NGINX_HTTPS_PORT=4431'
-#    regexp: "^NGINX_HTTPS_PORT="
-#  when: 
-#    - arch == "amd64"
-#    - not timesketchDirectory.stat.exists
-#
-#- name: "Timesketch | modify TCP Port"
-#  lineinfile:
-#    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/config.env"
-#    line: 'NGINX_HTTP_PORT=8081'
-#    regexp: "^NGINX_HTTP_PORT="
-#  when: 
-#    - arch == "amd64"
-#    - not timesketchDirectory.stat.exists
-
 
 #- name: "Timesketch | Find the rule files"
 ##  become_user: "{{ ansible_user }}"
@@ -105,7 +122,7 @@
 
 - name: "Timesketch | Stop a container"
   docker_container:
-    name: "{{ item }}"
+    name: "{{ item }}"
     state: stopped
   loop:
     - "timesketch-web"

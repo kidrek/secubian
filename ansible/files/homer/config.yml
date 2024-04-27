@@ -128,7 +128,7 @@ services:
       - name: "Timesketch"
         logo: "/assets/icons/timesketch.png"
         tag: "app"
-        url: "http://127.0.0.1:5601/"
+        url: "http://127.0.0.1:5080/"
         target: "_blank" # optional html a tag target attribute
         type: Ping
         method: "get"
