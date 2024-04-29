@@ -19,12 +19,23 @@
   with_items:
     - { repo: "https://github.com/mandiant/capa-rules.git", dest: "{{ DFIR_toolsDir }}/analyse/rules/flare-capa-rules" }
 
+- name: "FLARE CAPA | Clone git CAPA signatures repos"
+  become_user: "{{ ansible_user }}"
+  git:
+    repo: "{{ item.repo }}"
+    dest: "{{ item.dest }}"
+    accept_hostkey: yes
+    force: yes
+    recursive: yes
+  with_items:
+    - { repo: "https://github.com/mandiant/capa.git", dest: "{{ DFIR_toolsDir }}/analyse/rules/flare-capa-signatures" }
+
 - name: "FLARE CAPA | Add aliases"
   become_user: "{{ ansible_user }}"
   lineinfile:
     dest: "~/.aliases"
     create: yes
     mode: 0644
-    line: 'alias capa="capa -r {{ DFIR_toolsDir }}/analyse/rules/flare-capa-rules"'
+    line: 'alias capa="capa --rules {{ DFIR_toolsDir }}/analyse/rules/flare-capa-rules --signatures {{ DFIR_toolsDir }}/analyse/rules/flare-capa-signatures/sigs "'
     regexp: "^alias capa="
 
