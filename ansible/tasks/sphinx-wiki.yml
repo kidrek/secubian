@@ -98,5 +98,5 @@
     dest: "~/.aliases"
     create: yes
     mode: 0644
-    line: "alias update-wiki='cd {{ documentationDir }}/wiki/source; git pull; cd -; cd {{ documentationDir }}/wiki/ && . __env__/bin/activate && make html; sudo cp -rf ./build/html /var/www/html/wiki; sudo chown -R www-data:www-data /var/www/html/wiki; cd -'"
+    line: "alias update-wiki='cd {{ documentationDir }}/wiki/source; git pull; cd -; cd {{ documentationDir }}/wiki/ && . __env__/bin/activate && make html; sudo rm -rf /var/www/html/wiki; sudo cp -rf ./build/html /var/www/html/wiki; sudo chown -R www-data:www-data /var/www/html/wiki; cd -'"
     regexp: "^alias update-wiki="
