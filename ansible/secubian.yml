@@ -11,6 +11,8 @@
       DFIR_toolsDir: "{{ toolsDir }}/DFIR"
       OSINT_toolsDir: "{{ toolsDir }}/OSINT"
       docker_compose_version: "v2.11.1"
+      keepass_db_path: "/home/{{ ansible_user }}/Documents/secubian.kdbx"
+      keepass_db_password: "secubian"
 
   tasks: 
    - name: System upgrade
@@ -44,6 +46,7 @@
    - include: tasks/requirements_packages.yml
    - include: tasks/gnome.yml
    - include: tasks/i3.yml
+   - include: tasks/keepassXC_create_db.yml
    - include: tasks/zsh.yml
    - include: tasks/vscode.yml
    - include: tasks/firefox.yml

@@ -9,7 +9,7 @@ Les variables attendues dans le fichier ```inventory``` sont les suivantes :
 - ansible_user : login du compte utilisateur dont la session sera enrichie par les outils et la documentation
 - ansible_ssh_pass : le mot de passe de l'utilisateur permettant l'authentification SSH
 - ansible_sudo_pass : le mot de passe de l'utilisateur
-- arch : cette variable permet de définir l'architecture cible ex: amd64, arm64 // Elle sera à terme remplacée par la variable globale d'Ansible.
+- arch : cette variable permet de définir l'architecture cible ex: ```amd64```, ```arm64``` // Elle sera à terme remplacée par la variable globale d'Ansible.
 
 Voici des exemples de fichier inventory :
 
@@ -26,9 +26,10 @@ Voici des exemples de fichier inventory :
 ```
 
 
-Une fois les données fournies, voici la commande à exécuter : 
+Une fois les données fournies, voici la commande à exécuter (potentiellement au sein d'une instance tmux/screen): 
 
 ```
 ansible-playbook -i inventory secubian.yml
 ```
 
+Un redémarrage est conseillé, une fois le système installé.

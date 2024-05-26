@@ -1,13 +1,11 @@
 # Portainer is a docker web manager
 ## This will start Portainer on port 8000/http and 9443/https.
 
+- include: tasks/keepassXC_generate_password.yml
+
 - name: "Portainer | set portainer_username"
   ansible.builtin.set_fact:
     portainer_user : "secubian" 
-
-- name: "Portainer | set portainer_password"
-  ansible.builtin.set_fact:
-    portainer_passwd : "secubiansecubian" 
 
 - name: "Portainer | Create volume"
   community.docker.docker_volume:
@@ -48,6 +46,14 @@
   retries: 5
   delay: 10
 
+
+- name: "Portainer | Add Entry in keepassXC"
+  become_user: "{{ ansible_user }}"
+  shell: "printf \"%s\n%s\" {{ keepass_db_password }} {{ password }} | keepassxc-cli add --url 'https://127.0.0.1:9443/' -u '{{ portainer_user }}' -p {{ keepass_db_path }} portainer"
+  delegate_to: localhost
+  register: result
+  ignore_errors: False
+
 # Reference : 
 # - https://docs.portainer.io/admin/environments/add/api
 # - https://github.com/dcjulian29/ansible-role-portainer/blob/main/tasks/main.yml
@@ -58,9 +64,9 @@
     method: POST
     return_content: true
     body_format: json
-    body: '{ "Username":"{{ portainer_user }}", "Password":"{{ portainer_passwd }}"}'
+    body: '{ "Username":"{{ portainer_user }}", "Password":"{{ password }}"}'
     status_code: 200, 409
-  when: portainer_user and portainer_passwd is defined
+  when: portainer_user and password is defined
 
 - name: "Portainer | Generate authentication token"
   ansible.builtin.uri:
@@ -69,9 +75,9 @@
     method: POST
     return_content: true
     body_format: json
-    body: '{"Username": "secubian", "Password": "secubiansecubian"}'
+    body: '{"Username": "{{ portainer_user }}", "Password": "{{ password }}"}'
   register: auth_token
-  when: portainer_user and portainer_passwd is defined
+  when: portainer_user and password is defined
 
 - name: "Portainer | DEBUG - Print token"
   ansible.builtin.debug:

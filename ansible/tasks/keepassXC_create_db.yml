@@ -1,0 +1,11 @@
+- name: "Keepass | Install requirements"
+  apt:
+    name: 
+      - keepassxc
+
+- name: "Keepass | Create database"
+  become_user: "{{ ansible_user }}"
+  shell: "printf \"%s\n%s\" {{ keepass_db_password }} {{ keepass_db_password }} | keepassxc-cli db-create -p {{ keepass_db_path }}"
+  delegate_to: localhost
+  register: result
+  ignore_errors: False

@@ -1,6 +1,5 @@
-
-
-- name: "IRIS Web | Clone git repos"
+## Retrieve git repository
+- name: "DFIR IRIS | Clone git repos"
   become_user: "{{ ansible_user }}"
   git:
     repo: "{{ item.repo }}"
@@ -11,20 +10,40 @@
   with_items:
     - { repo: "https://github.com/dfir-iris/iris-web.git", dest: "{{ DFIR_toolsDir }}/report/iris-web" }
 
-- name: "IRIS Web | Create configuration"
+## Create configuration
+- name: "DFIR IRIS | Create configuration"
   become_user: "{{ ansible_user }}"
   ansible.builtin.shell: cd {{ DFIR_toolsDir }}/report/iris-web; cp .env.model .env;
 
-- name: "IRIS Web | Set Administrator password"
+## Set administrator user
+- include: tasks/keepassXC_generate_password.yml
+
+- name: "DFIR IRIS | Add Entry in keepassXC"
+  become_user: "{{ ansible_user }}"
+  shell: "printf \"%s\n%s\" {{ keepass_db_password }} {{ password }} | keepassxc-cli add --url 'https://127.0.0.1:7443/' -u 'secubian' -p {{ keepass_db_path }} dfir-iris"
+  delegate_to: localhost
+  register: result
+  ignore_errors: False
+
+- name: "DFIR IRIS | Set Administrator username"
   become_user: "{{ ansible_user }}"
   lineinfile:
     dest: "{{ DFIR_toolsDir }}/report/iris-web/.env"
     create: yes
     mode: 0644
-    line: 'IRIS_ADM_PASSWORD=administrator'
+    line: 'IRIS_ADM_USERNAME=secubian'
+    regexp: "^IRIS_ADM_USERNAME="
+
+- name: "DFIR IRIS | Set Administrator password"
+  become_user: "{{ ansible_user }}"
+  lineinfile:
+    dest: "{{ DFIR_toolsDir }}/report/iris-web/.env"
+    create: yes
+    mode: 0644
+    line: 'IRIS_ADM_PASSWORD={{ password }}'
     regexp: "^IRIS_ADM_PASSWORD="
 
-- name: "IRIS Web | Set listening port"
+- name: "DFIR IRIS | Set listening port"
   become_user: "{{ ansible_user }}"
   lineinfile:
     dest: "{{ DFIR_toolsDir }}/report/iris-web/.env"
@@ -33,18 +52,18 @@
     line: 'INTERFACE_HTTPS_PORT=7443'
     regexp: "^INTERFACE_HTTPS_PORT="
 
-- name: "IRIS Web | Remove debug port"
+- name: "DFIR IRIS | Remove debug port"
   become_user: "{{ ansible_user }}"
   lineinfile:
     dest: "{{ DFIR_toolsDir }}/report/iris-web/docker-compose.yml"
     line: '      - "127.0.0.1:7000:8000"'
     regexp: '(- "127.0.0.1:8000:8000")'
 
-- name: "IRIS Web | Build Docker"
+- name: "DFIR IRIS | Build Docker"
   become_user: "{{ ansible_user }}"
   ansible.builtin.shell: cd {{ DFIR_toolsDir }}/report/iris-web; sudo service docker restart; sudo docker-compose pull; sudo docker-compose build; sudo docker-compose up -d;
 
-- name: "IRIS Web | Add aliases"
+- name: "DFIR IRIS | Add aliases"
   become_user: "{{ ansible_user }}"
   lineinfile:
     dest: "~/.aliases"
@@ -54,7 +73,7 @@
     regexp: "^alias iris-web="
 
 ## Then, wait server is up and running to kill it
-- name: "IRIS Web | Wait server is up and running"
+- name: "DFIR IRIS | Wait server is up and running"
   ansible.builtin.uri:
     url: https://127.0.0.1:7443
     validate_certs: false
@@ -63,11 +82,11 @@
   retries: 10
   delay: 60
 
-- name: "IRIS Web | Docker restart policy"
+- name: "DFIR IRIS | Docker restart policy"
   become_user: "{{ ansible_user }}"
   ansible.builtin.shell: sudo docker update --restart=always iriswebapp_app iriswebapp_db iriswebapp_nginx iriswebapp_rabbitmq iriswebapp_worker;
 
-- name: "IRIS Web | Create reports folder"
+- name: "DFIR IRIS | Create reports folder"
   become_user: "{{ ansible_user }}"
   file:
     path: "{{ DFIR_toolsDir }}/report/iris-web/reports"
@@ -79,7 +98,7 @@
 # Download template
 # https://docs.dfir-iris.org/operations/example_reports/iris_report_template.docx
 # https://docs.dfir-iris.org/operations/example_reports/iris_activity_report_template.docx
-- name: "IRIS Web | Download reports templates"
+- name: "DFIR IRIS | Download reports templates"
   ansible.builtin.get_url:
     url: "{{ item.url }}"
     dest: "{{ DFIR_toolsDir }}/report/iris-web/reports/{{ item.filename }}"
@@ -89,3 +108,4 @@
   with_items:
     - { url: "https://docs.dfir-iris.org/operations/example_reports/iris_report_template.docx", filename: "iris_report_template.docx" }
     - { url: "https://docs.dfir-iris.org/operations/example_reports/iris_activity_report_template.docx", filename: "iris_activity_report_template.docx" }
+
