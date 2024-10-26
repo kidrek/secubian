@@ -1,0 +1,46 @@
+
+## N8N Installation
+- name: "N8N | Create Docker container"
+  community.docker.docker_container:
+    name: n8n
+    image: docker.n8n.io/n8nio/n8n
+    recreate: true
+    env: 
+        N8N_PORT: "5678"
+        N8N_PROTOCOL: "http"
+        NODE_ENV: "production"
+        WEBHOOK_URL: "http://127.0.0.1:5678/"
+    ports:
+      - 5678:5678
+
+## Then, wait server is up and running to kill it
+- name: "N8N | Wait server is up and running"
+  ansible.builtin.uri:
+    url: http://127.0.0.1:5678
+  register: result
+  until: "result.status == 200"
+  retries: 10
+  delay: 60
+
+## N8N Configuration
+### Generate password
+- include: tasks/keepassXC_generate_password.yml
+
+### Add N8N entry in keepassXC
+- name: "N8N | Add Entry in keepassXC"
+  become_user: "{{ ansible_user }}"
+  shell: "printf \"%s\n%s\" {{ keepass_db_password }} {{ password }} | keepassxc-cli add --url 'http://127.0.0.1:5678/' -u '{{ ansible_user }}@localhost.com' -p {{ keepass_db_path }} n8n"
+  delegate_to: localhost
+  register: result
+  ignore_errors: False
+
+### Set admin user
+- name: "N8N | Configure admin user password"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:5678/rest/owner/setup"
+    validate_certs: false
+    method: POST
+    return_content: true
+    body_format: json
+    body: '{"email":"{{ ansible_user }}@localhost.com", "firstName":"{{ ansible_user }}", "lastName":"{{ ansible_user }}", "password":"{{ password }}"}'
+    status_code: 200, 409
