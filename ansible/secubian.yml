@@ -53,6 +53,7 @@
    - include: tasks/docker.yml
    - include: tasks/draw_io.yml
    - include: tasks/homer.yml
+   - include: tasks/n8n.yml
    - include: tasks/portainer.yml
    - include: tasks/secubian-jupyternotebook.yml
    - include: tasks/sphinx-wiki.yml
@@ -69,7 +70,7 @@
    - include: tasks/forensic/log2timeline.yml
    - include: tasks/forensic/loki.yml
    - include: tasks/forensic/mvt.yml
-   #- include: tasks/forensic/opensearch.yml  <-- Error during installation "No custom admin password found."
+   - include: tasks/forensic/elk.yml
    - include: tasks/forensic/timesketch.yml
    - include: tasks/forensic/uac.yml
    - include: tasks/forensic/velociraptor.yml
@@ -251,14 +252,3 @@
    - name: Remove useless packages from the cache
      ansible.builtin.apt:
        autoclean: yes
-
-   ## DEV
-   #- name: upload cases
-   #  copy: 
-   #   src: "/Users/kidrek/SynologyDrive/00_Cybersecurity/00_projects/202302_secubian_jupyternotebook/dfir/payloads_and_dumps" 
-   #   dest: "{{ casesDir }}" 
-   #   owner: "{{ ansible_user }}" 
-   #   group: "{{ ansible_user }}" 
-   #   mode: 600
-   #  tags: 
-   #    - dumps
