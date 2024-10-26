@@ -156,11 +156,11 @@
 
 - name: Gnome Application Theme - Apply vimix-gtk-themes
   become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/desktop/interface/gtk-theme" value="'vimix-dark-compact-doder'"
+  dconf: key="/org/gnome/desktop/interface/gtk-theme" value="'Vimix-dark-compact-doder'"
 
 - name: Gnome Application Theme - Apply vimix-gtk-themes
   become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/shell/extensions/user-theme/name" value="'vimix-dark-compact-doder'"
+  dconf: key="/org/gnome/shell/extensions/user-theme/name" value="'Vimix-dark-compact-doder'"
 
 - name: Gnome Icon Theme flat-remix-icons - Transfert
   become: true
