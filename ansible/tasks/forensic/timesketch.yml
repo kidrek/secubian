@@ -75,9 +75,21 @@
     - arch == "amd64"
     - not timesketchDirectory.stat.exists
 
+
+- name: "Timesketch | Download tags file"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/kidrek/AllthingsTimesketch/refs/heads/master/tags.yaml
+    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/etc/timesketch/tags.yaml"
+    mode: 0644
+    force: true
+  when: 
+    - arch == "amd64"
+    - not timesketchDirectory.stat.exists
+
 - name: "Timesketch | Start docker"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/timesketch; docker-compose up -d;
+  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/timesketch/timesketch; docker-compose up -d;
   when: 
     - arch == "amd64"
     - not timesketchDirectory.stat.exists
@@ -126,19 +138,35 @@
     - arch == "amd64"
     - not timesketchDirectory.stat.exists
 
+## Timesketch Configuration
+### Generate password
+- include: tasks/keepassXC_generate_password.yml
+
+### Add Timesketch entry in keepassXC
+- name: "Timesketch | Add Entry in keepassXC"
+  become_user: "{{ ansible_user }}"
+  shell: "printf \"%s\n%s\" {{ keepass_db_password }} {{ password }} | keepassxc-cli add --url 'http://127.0.0.1:5080/' -u '{{ ansible_user }}' -p {{ keepass_db_path }} timesketch"
+  delegate_to: localhost
+  register: result
+  ignore_errors: False
+
+
 - name: "Timesketch | Create user"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: sleep 30; cd {{ DFIR_toolsDir }}/timesketch/timesketch; sudo docker-compose exec timesketch-web tsctl create-user {{ ansible_user }} --password {{ ansible_user }};
+  ansible.builtin.shell: sleep 30; cd {{ DFIR_toolsDir }}/timesketch/timesketch; sudo docker-compose exec timesketch-web tsctl create-user {{ ansible_user }} --password {{ password }};
   when: 
     - arch == "amd64"
     - not timesketchDirectory.stat.exists
 
 - name: "Timesketch | Stop a container"
+  become_user: "{{ ansible_user }}"
   docker_container:
     name: "{{ item }}"
     state: stopped
+    restart_policy: no
   loop:
     - "timesketch-web"
+    - "timesketch-web-legacy"
     - "timesketch-worker"
     - "opensearch"
     - "postgres"
