@@ -89,7 +89,7 @@
 
 - name: "Timesketch | Start docker"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/timesketch/timesketch; docker-compose up -d;
+  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/timesketch/timesketch; sudo docker-compose up -d;
   when: 
     - arch == "amd64"
     - not timesketchDirectory.stat.exists
@@ -159,7 +159,6 @@
     - not timesketchDirectory.stat.exists
 
 - name: "Timesketch | Stop a container"
-  become_user: "{{ ansible_user }}"
   docker_container:
     name: "{{ item }}"
     state: stopped
