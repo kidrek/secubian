@@ -9,6 +9,7 @@ icon: "" # Optional icon
 
 header: true
 footer: false
+connectivityCheck: false
 
 stylesheet:
   - "assets/custom.css"
@@ -94,15 +95,16 @@ services:
         tag: "app"
         url: "https://127.0.0.1:7443/"
         target: "_blank" # optional html a tag target attribute
-        type: Ping
-        method: "get"        
       - name: "DRAW.io"
         logo: "/assets/icons/drawio.png"
         tag: "app"
         url: "http://127.0.0.1:6080/"
         target: "_blank" # optional html a tag target attribute
-        type: Ping
-        method: "get"        
+      - name: "N8N"
+        logo: "/assets/icons/n8n.png"
+        tag: "app"
+        url: "http://127.0.0.1:5678/"
+        target: "_blank" # optional html a tag target attribute
 
   - name: "COLLECT"
     icon: "fas fa-save"
@@ -112,26 +114,20 @@ services:
         tag: "app"
         url: "https://127.0.0.1:8889/app/index.html"
         target: "_blank" # optional html a tag target attribute
-        type: Ping
-        method: "head"
 
   - name: "ANALYSE"
     icon: "fas fa-desktop"
     items:
-      - name: "Opensearch"
-        logo: "/assets/icons/opensearch.png"
+      - name: "Elastic / Kibana"
+        logo: "/assets/icons/elk.png"
         tag: "app"
         url: "http://127.0.0.1:5601/"
         target: "_blank" # optional html a tag target attribute
-        type: Ping
-        method: "get"
       - name: "Timesketch"
         logo: "/assets/icons/timesketch.png"
         tag: "app"
         url: "http://127.0.0.1:5080/"
         target: "_blank" # optional html a tag target attribute
-        type: Ping
-        method: "get"
       - name: "Arkime (PCAP)"
         logo: "/assets/icons/arkime.png"
         tag: "app"
@@ -146,8 +142,6 @@ services:
         tag: "admin"
         url: "https://127.0.0.1:9443"
         target: "_blank"
-        type: Ping
-        method: "head"
       - name: "CyberChef"
         logo: "/assets/icons/cyberchef.png"
         tag: "app"
