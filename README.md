@@ -25,10 +25,10 @@ Voici une liste non exhaustive des outils présents :
 PS: D'autres outils dédiés aux domaines du Pentest et de l'OSINT sont également disponibles.
 
 ## La documentation
-Le projet intègre 2 sous-projets dérivés nommés, [secubian-wiki](https://github.com/kidrek/secubian-wiki) et [secubian-JupyterNotebook](https://github.com/kidrek/secubian-JupyterNotebook). Ces derniers sont téléchargés en local dans le répertoire ```Documents``` de votre profil utilisateur. Ils permettent d'apporter de la documentation et de la méthodologie disponibles même OFFLINE.
+Le projet intègre 2 sous-projets dérivés nommés, [secubian-wiki](https://github.com/kidrek/secubian-wiki) et [secubian-JupyterNotebook](https://github.com/kidrek/secubian-JupyterNotebook). Ces derniers sont téléchargés en local dans le répertoire ``$HOME/Documents/Documentation`` et ``$HOME/Documents/Playbooks``, respectivement, de votre profil utilisateur. Ils permettent d'apporter de la documentation et de la méthodologie disponibles même OFFLINE.
 
 ## Investigation numérique
 
-Un répertoire ```Cases``` est également présent dans le répertoire ```/$HOME/Documents/``` de votre profil utilisateur, pour faciliter la gestion des preuves. \
+Un répertoire ```Cases``` est également présent dans le répertoire ```$HOME/Documents/``` de votre profil utilisateur, pour faciliter la gestion des preuves. \
 Celles-ci pourront y être déposées pour analyse. 
 
