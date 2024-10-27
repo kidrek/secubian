@@ -30,7 +30,7 @@
 - name: "CIRCL-Hashlookup | Add BASH aliases"
   become_user: "{{ ansible_user }}"
   lineinfile:
-    dest: "~/.bash_aliases"
+    dest: "~/.aliases"
     create: yes
     mode: 0644
     line: 'alias hashlookupByCIRCL="$HOME/.pyenv/versions/{{ python_version }}/bin/python {{ DFIR_toolsDir }}/analyse/tools/windows_binary/CIRCL-Hashlookup/bin/hashlookup-analyser.py --bloomfilters {{ DFIR_toolsDir }}/analyse/tools/windows_binary/CIRCL-Hashlookup/hashlookup-full.bloom --include-stats "'
