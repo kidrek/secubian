@@ -44,7 +44,19 @@
     - arch == "amd64"
     - not timesketchDirectory.stat.exists
 
+
+- name: "Timesketch | modify memory usage"
+  become_user: "{{ ansible_user }}"
+  lineinfile:
+    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/config.env"
+    line: 'OPENSEARCH_MEM_USE_GB=4'
+    regexp: "^OPENSEARCH_MEM_USE_GB="
+  when: 
+    - arch == "amd64"
+    - not timesketchDirectory.stat.exists
+
 - name: "Timesketch | modify HTTPS TCP Port"
+  become_user: "{{ ansible_user }}"
   lineinfile:
     dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/config.env"
     line: 'NGINX_HTTPS_PORT=5443'
@@ -54,6 +66,7 @@
     - not timesketchDirectory.stat.exists
 
 - name: "Timesketch | modify HTTP TCP Port"
+  become_user: "{{ ansible_user }}"
   lineinfile:
     dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/config.env"
     line: 'NGINX_HTTP_PORT=5080'
