@@ -8,3 +8,6 @@
 
 - name: "Suricata | update rules"
   ansible.builtin.shell: suricata-update; 
+
+- name: "Suricata | Disable service"
+  ansible.builtin.shell: systemctl disable suricata; 
