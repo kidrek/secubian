@@ -140,7 +140,7 @@
 
 ## Timesketch Configuration
 ### Generate password
-- include: tasks/keepassXC_generate_password.yml
+- include_tasks: tasks/keepassXC_generate_password.yml
 
 ### Add Timesketch entry in keepassXC
 - name: "Timesketch | Add Entry in keepassXC"

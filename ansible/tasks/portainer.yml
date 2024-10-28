@@ -1,7 +1,7 @@
 # Portainer is a docker web manager
 ## This will start Portainer on port 8000/http and 9443/https.
 
-- include: tasks/keepassXC_generate_password.yml
+- include_tasks: tasks/keepassXC_generate_password.yml
 
 - name: "Portainer | set portainer_username"
   ansible.builtin.set_fact:

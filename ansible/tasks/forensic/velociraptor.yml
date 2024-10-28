@@ -29,7 +29,7 @@
   ignore_errors: True
 
 ## Create user
-- include: tasks/keepassXC_generate_password.yml
+- include_tasks: tasks/keepassXC_generate_password.yml
 
 - name: "Velociraptor | Add Entry in keepassXC"
   become_user: "{{ ansible_user }}"

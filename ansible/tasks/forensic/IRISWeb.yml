@@ -16,7 +16,7 @@
   ansible.builtin.shell: cd {{ DFIR_toolsDir }}/report/iris-web; cp .env.model .env;
 
 ## Set administrator user
-- include: tasks/keepassXC_generate_password.yml
+- include_tasks: tasks/keepassXC_generate_password.yml
 
 - name: "DFIR IRIS | Add Entry in keepassXC"
   become_user: "{{ ansible_user }}"
@@ -82,9 +82,17 @@
   retries: 10
   delay: 60
 
-- name: "DFIR IRIS | Docker restart policy"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: sudo docker update --restart=always iriswebapp_app iriswebapp_db iriswebapp_nginx iriswebapp_rabbitmq iriswebapp_worker;
+- name: "DFIR IRIS | Stop a container"
+  docker_container:
+    name: "{{ item }}"
+    state: stopped
+    restart_policy: no
+  loop:
+    - "iriswebapp_app"
+    - "iriswebapp_db"
+    - "iriswebapp_nginx"
+    - "iriswebapp_rabbitmq"
+    - "iriswebapp_worker"
 
 - name: "DFIR IRIS | Create reports folder"
   become_user: "{{ ansible_user }}"

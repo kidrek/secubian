@@ -24,7 +24,7 @@
 
 ## N8N Configuration
 ### Generate password
-- include: tasks/keepassXC_generate_password.yml
+- include_tasks: tasks/keepassXC_generate_password.yml
 
 ### Add N8N entry in keepassXC
 - name: "N8N | Add Entry in keepassXC"
