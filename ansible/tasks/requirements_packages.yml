@@ -23,6 +23,7 @@
       - terminator
       - tmux
       - vim
+      - wireguard
       - zulucrypt-gui
     state: present
 
