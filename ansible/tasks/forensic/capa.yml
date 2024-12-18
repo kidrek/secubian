@@ -1,12 +1,23 @@
+- name: "FLARE CAPA | Retrieve the latest version"
+  uri:
+    url: "https://api.github.com/repos/mandiant/capa/releases/latest"
+    return_content: true
+  register: latest_version
 
+- name: "FLARE CAPA | Download the latest version"
+  loop: "{{ latest_version.json.assets }}"
+  when: "'-linux.zip' in item.name"
+  get_url:
+    url: "{{ item.browser_download_url }}"
+    dest: "/tmp/capa-linux.zip"
 
-- name: "FLARE CAPA | Install python3 module"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.pip:
-    name: 
-      - flare-capa
-    virtualenv: "$HOME/.pyenv/versions/3.9.18"
-    virtualenv_command: $HOME/.pyenv/bin/pyenv virtualenv 3.9.18
+- name: "FLARE CAPA | Extract binary from archive"
+  ansible.builtin.unarchive:
+    src: /tmp/capa-linux.zip
+    dest: /usr/bin/
+
+- name: "FLARE CAPA | Set executable"
+  ansible.builtin.shell: chmod +x /usr/bin/capa
 
 - name: "FLARE CAPA | Clone git CAPA rules repos"
   become_user: "{{ ansible_user }}"
