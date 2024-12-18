@@ -11,18 +11,18 @@
     force: yes
     recursive: yes
   with_items:
-    - { repo: "https://github.com/Neo23x0/Loki.git", dest: "{{ DFIR_toolsDir }}/Loki" }
+    - { repo: "https://github.com/Neo23x0/Loki.git", dest: "{{ DFIR_toolsDir }}/analyse/tools/Loki" }
 
 - name: "Loki | Python modules requirement"
   become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
-    requirements: "{{ DFIR_toolsDir }}/Loki/requirements.txt"
+    requirements: "{{ DFIR_toolsDir }}/analyse/tools/Loki/requirements.txt"
     virtualenv: "$HOME/.pyenv/versions/{{ python_version }}"
     virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv {{ python_version }}"
 
 - name: "Loki | Threat database update"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/Loki; $HOME/.pyenv/versions/{{ python_version }}/bin/python ./loki-upgrader.py;
+  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/analyse/tools/Loki; $HOME/.pyenv/versions/{{ python_version }}/bin/python ./loki-upgrader.py;
 
 - name: "Loki | Add aliases"
   become_user: "{{ ansible_user }}"
@@ -30,5 +30,5 @@
     dest: "~/.aliases"
     create: yes
     mode: 0644
-    line: 'alias loki.py="cd {{ DFIR_toolsDir }}; $HOME/.pyenv/versions/{{ python_version }}/bin/python ./Loki/loki.py"'
+    line: 'alias loki.py="cd {{ DFIR_toolsDir }}/analyse/tools/Loki; $HOME/.pyenv/versions/{{ python_version }}/bin/python loki.py"'
     regexp: "^alias loki.py="
