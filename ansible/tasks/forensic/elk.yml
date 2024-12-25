@@ -23,18 +23,35 @@
     ulimits: 
       - nofile:65536:65536
 
-## Then, wait server is up and running to kill it
-#- name: "Elasticsearch | Wait server is up and running"
-#  ansible.builtin.uri:
-#    url: http://127.0.0.1:9200
-#  register: result
-#  until: "result.status == 200"
-#  retries: 10
-#  delay: 60
-#
-#- name: "Elasticsearch | Disable Replica"
-#  become: true
-#  ansible.builtin.shell: "curl -XPUT 'http://localhost:9200/_all/_settings?preserve_existing=true' -d '{\"index.number_of_replicas\" : \"0\",  \"index.number_of_shards\" : \"1\"}'"
+- name: "Elasticsearch | Wait server is up and running"
+  ansible.builtin.uri:
+    url: http://localhost:9200/_cluster/health
+    method: GET
+    return_content: yes
+  register: result
+  until: "result.status == 200"
+  retries: 10
+  delay: 60
+
+
+- name: "Elasticsearch | Wait server has green status"
+  ansible.builtin.uri:
+    url: http://localhost:9200/_cluster/health
+    method: GET
+    status_code: 200
+    return_content: yes
+  register: result
+  until: "result.json.status == 'green'"
+  retries: 10
+  delay: 60
+
+#- name: Print returned json dictionary
+#  debug:
+#    var: result.json.status
+
+- name: "Elasticsearch | Disable Replica for all indices"
+  become: true
+  ansible.builtin.shell: "curl -XPUT 'http://localhost:9200/_all/_settings?preserve_existing=true' -d '{\"index.number_of_replicas\" : \"0\",  \"index.number_of_shards\" : \"1\"}'"
 
 ## Kibana installation
 - name: "Kibana | Create Docker container"
@@ -50,3 +67,33 @@
       - 5601:5601
     networks:
       - name: "elastic"
+
+- name: "Kibana | Check if container is running"
+  wait_for:
+    host: "localhost"
+    port: 5601
+
+- name: "Kibana | Wait server is up"
+  ansible.builtin.uri:
+    url: http://localhost:5601/api/licensing/info
+    method: GET
+    return_content: yes
+  register: result
+  until: "result.status == 200"
+  retries: 10
+  delay: 60
+
+- name: "Kibana | Wait server running"
+  ansible.builtin.uri:
+    url: http://localhost:5601/api/licensing/info
+    method: GET
+    status_code: 200
+    return_content: yes
+  register: result
+  until: "result.json.license.status == 'active'"
+  retries: 10
+  delay: 60
+
+## Kibana - import dashboards
+- name: "Kibana | Import dashboards"
+  ansible.builtin.shell: "for file in $(ls ./files/kibana_dashboards/*.ndjson);do curl -X POST 'http://localhost:5601/api/saved_objects/_import?overwrite=true' -H 'kbn-xsrf: true' --form file=@$file; done"
