@@ -109,6 +109,11 @@ services:
   - name: "COLLECT"
     icon: "fas fa-save"
     items:
+      - name: "Spiderfoot (OSINT)"
+        logo: "/assets/icons/spiderfoot.png"
+        tag: "app"
+        url: "http://127.0.0.1:5001/"
+        target: "_blank" # optional html a tag target attribute
       - name: "Velociraptor"
         logo: "/assets/icons/velociraptor.png"
         tag: "app"
