@@ -79,6 +79,7 @@
    - include_tasks: tasks/forensic/zircolite.yml
    - include_tasks: tasks/osint/ct-exposer.yml
    - include_tasks: tasks/osint/spiderfoot.yml
+   - include_tasks: tasks/osint/theharvester.yml
    - include_tasks: tasks/debian_hardening.yml
 
    - name: Install - AV Security tools

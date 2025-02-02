@@ -1,0 +1,41 @@
+- name: "TheHarvester | set PythonVersion"
+  ansible.builtin.set_fact:
+    python_version : "3.13.0" 
+
+- name: "TheHarvester | Clone git repos"
+  become_user: "{{ ansible_user }}"
+  git:
+    repo: "{{ item.repo }}"
+    dest: "{{ item.dest }}"
+    accept_hostkey: yes
+    force: yes
+    recursive: yes
+  with_items:
+    - { repo: "https://github.com/laramies/theHarvester", dest: "{{ OSINT_toolsDir }}/theharvester" }
+
+- name: "TheHarvester | Install python {{ python_version }}"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.shell: ". $HOME/.env && $HOME/.pyenv/bin/pyenv install {{ python_version }}"
+  ignore_errors: true
+
+- name: "TheHarvester | Set python version"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.shell: "cd {{ OSINT_toolsDir }}/theharvester; $HOME/.pyenv/bin/pyenv local {{ python_version }}"
+
+- name: "TheHarvester | Requirements tools installation"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.pip:
+    requirements: "{{ OSINT_toolsDir }}/theharvester/requirements/base.txt"
+    virtualenv: "$HOME/.pyenv/versions/{{ python_version }}"
+    virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv {{ python_version }}"
+
+- name: "TheHarvester | Add alias"
+  become_user: "{{ ansible_user }}"
+  lineinfile:
+    dest: "~/.aliases"
+    create: yes
+    mode: 0644
+    line: "alias {{ item.alias }}='{{ item.commandLine }}'"
+    regexp: "^alias {{ item.alias }}="
+  with_items:
+    - { alias: "theHarvester.py", commandLine: "$HOME/.pyenv/versions/{{ python_version }}/bin/python {{ OSINT_toolsDir }}/theharvester/theHarvester.py" }
