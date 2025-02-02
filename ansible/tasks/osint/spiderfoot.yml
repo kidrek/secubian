@@ -1,0 +1,26 @@
+
+
+- name: "Spiderfoot | Create date directory"
+  become_user: "{{ ansible_user }}"
+  file:
+    path: "{{OSINT_toolsDir}}/spiderfoot"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0775
+
+
+- name: "Spiderfoot | Run docker container"
+  become_user: "{{ ansible_user }}"
+  community.docker.docker_container:
+    name: spiderfoot
+    image: josaorg/spiderfoot
+    recreate: true
+    state: started
+    restart: true
+    restart_policy: "always"
+    privileged: false
+    published_ports:
+      - "127.0.0.1:5001:5001"
+    volumes:
+      - "{{OSINT_toolsDir}}/spiderfoot:/var/lib/spiderfoot"
