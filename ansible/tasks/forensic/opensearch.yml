@@ -40,6 +40,11 @@
     state: latest
     update_cache: true
 
+#- name: "OpenSearch | Update cache and Install OpenSearch"
+#  become: true
+#  ansible.builtin.shell: "OPENSEARCH_INITIAL_ADMIN_PASSWORD=Secub1@nSecub1@n apt install opensearch"
+
+
 - name: "OpenSearch | Modify configuration"
   ansible.builtin.lineinfile:
     path: /etc/opensearch/opensearch.yml
