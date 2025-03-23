@@ -1,3 +1,7 @@
+- name: "ELK | set version"
+  ansible.builtin.set_fact:
+    elk_version : "8.15.0" 
+
 - name: "Elasticsearch | Create Docker network"
   community.docker.docker_network:
     name: elastic
@@ -6,7 +10,7 @@
 - name: "Elasticsearch | Create Docker container"
   community.docker.docker_container:
     name: elasticsearch
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    image: "docker.elastic.co/elasticsearch/elasticsearch:{{ elk_version }}"
     recreate: true
     env: 
         node.name: "elasticsearch01"
@@ -33,7 +37,6 @@
   retries: 10
   delay: 60
 
-
 - name: "Elasticsearch | Wait server has green status"
   ansible.builtin.uri:
     url: http://localhost:9200/_cluster/health
@@ -57,7 +60,7 @@
 - name: "Kibana | Create Docker container"
   community.docker.docker_container:
     name: kibana
-    image: docker.elastic.co/kibana/kibana:8.15.0
+    image: "docker.elastic.co/kibana/kibana:{{ elk_version }}"
     recreate: true
     env:
         ELASTICSEARCH_HOSTS: "http://elasticsearch:9200"
@@ -97,3 +100,22 @@
 ## Kibana - import dashboards
 - name: "Kibana | Import dashboards"
   ansible.builtin.shell: "for file in $(ls ./files/kibana_dashboards/*.ndjson);do curl -X POST 'http://localhost:5601/api/saved_objects/_import?overwrite=true' -H 'kbn-xsrf: true' --form file=@$file; done"
+
+- name: "Kibana | Set default route"
+  ansible.builtin.shell: "curl -X POST 'http://localhost:5601/internal/kibana/settings' -H 'kbn-xsrf: true' -H 'content-type: application/json' --data '{\"changes\":{\"defaultRoute\":\"/app/dashboards\"}}'"
+
+## Logstash installation
+- name: "Logstash | Create Docker container"
+  community.docker.docker_container:
+    name: logstash
+    image: "docker.elastic.co/logstash/logstash:{{ elk_version }}"
+    recreate: true
+    restart: no
+    restart_policy: "no"
+    state: "stopped"
+    env:
+        LS_JAVA_OPTS: "-Xms2g -Xmx2g"
+    networks:
+      - name: "elastic"
+    volumes:
+      - ./files/logstash/pipeline:/usr/share/logstash/pipeline/:ro
