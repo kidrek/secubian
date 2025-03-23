@@ -1,0 +1,94 @@
+- name: Startpage
+  width: slim
+  hide-desktop-navigation: false
+  center-vertically: true
+  columns:
+    - size: small
+      widgets:
+        - type: clock
+          hour-format: 24h
+          timezones:
+            - timezone: UTC
+              label: UTC
+            - timezone: Europe/Paris
+              label: Paris
+            - timezone: America/New_York
+              label: New York
+            - timezone: Asia/Tokyo
+              label: Tokyo
+        - type: calendar-legacy
+          start-sunday: false
+    - size: full
+      widgets:
+        - type: bookmarks
+          groups:
+            - title: ANALYSE
+              hide-arrow: true
+              color: 345 0 49
+              links:
+                - title: ARKIME
+                  url: https://127.0.0.1/arkime/
+                  icon: /assets/arkime.png
+                - title: ELASTIC STACK
+                  url: http://127.0.0.1:5601/
+                  icon: /assets/elk.png
+                - title: TIMESKETCH
+                  url: http://127.0.0.1:5080/
+                  icon: /assets/timesketch.png
+            - title: CSIRT
+              hide-arrow: true
+              color: 345 0 49
+              links:
+                - title: DFIR IRIS
+                  url: https://127.0.0.1:7443/
+                  icon: /assets/dfir_iris.png
+                - title: NOTEBOOK JUPYTER
+                  url: http://127.0.0.1:8888/
+                  icon: /assets/jupyter.png
+                - title: VELOCIRAPTOR
+                  url: https://127.0.0.1:8889/app/index.html
+                  icon: /assets/velociraptor.png
+            - title: CTI
+              hide-arrow: true
+              color: 345 0 49
+              links:
+                - title: SPIDERFOOT
+                  url: http://127.0.0.1:5001/
+                  icon: /assets/spiderfoot.png
+            - title: TOOLS
+              hide-arrow: true
+              color: 345 0 49
+              links:
+                - title: CYBERCHEF
+                  url: http://localhost/cyberchef/
+                  icon: /assets/cyberchef.png
+                - title: DRAW.IO
+                  url: http://127.0.0.1:6080/
+                  icon: /assets/drawio.png
+                - title: LIBRETRANSLATE
+                  url: http://localhost:5000/
+                  icon: /assets/libretranslate.png
+                - title: N8N
+                  url: http://127.0.0.1:5678/
+                  icon: /assets/n8n.png
+                - title: PORTAINER (docker)
+                  url: https://127.0.0.1:9443/
+                  icon: /assets/portainer.svg
+        - type: search
+          search-engine: http://localhost/wiki/search.html?q={QUERY}
+          placeholder: Type here to search in SECUBIAN Wiki ...
+          new-tab: true
+        - type: bookmarks
+          groups:
+            - title: SECUBIAN
+              hide-arrow: true
+              color: 345 0 49
+              links:
+                - title: WIKI
+                  url: http://localhost/wiki/
+            - title: Cyber
+              hide-arrow: true
+              color: 345 0 49
+              links:
+                - title: StartMe
+                  url: https://start.me/p/6r66da/cybersecurity

@@ -1,0 +1,13 @@
+server:
+#  assets-path: /app/assets
+  assets-path: /etc/glance/assets
+  host: localhost
+  port: 8080
+
+theme:
+  primary-color: 345 0 49
+  contrast-multiplier: 1.1
+
+pages:
+  !include: home.yml
+  !include: cti.yml

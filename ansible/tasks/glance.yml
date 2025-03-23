@@ -1,0 +1,84 @@
+#- name: "Glance | Copy preferences"
+#  become_user: "{{ ansible_user }}"
+#  ansible.builtin.copy: 
+#    src  : ../files/glance/
+#    dest : "/home/{{ ansible_user }}/.glance/"
+
+#- name: "Glance | Run docker container"
+#  community.docker.docker_container:
+#    name: glance
+#    image: glanceapp/glance
+#    state: started
+#    restart: true
+#    restart_policy: "always"
+#    volumes:
+#      - "/home/{{ ansible_user }}/.glance/config:/app/config"
+#      - "/home/{{ ansible_user }}/.glance/assets:/app/assets"
+#    ports:
+#     - "8080:8080"
+
+- name: "Glance | Create service user"
+  ansible.builtin.user:
+    name: "service_glance"
+    create_home: yes
+    home: "/etc/glance"
+
+- name: "Glance | Create binary directory"
+  file:
+    path: "/opt/glance/"
+    state: directory
+    owner: "service_glance"
+    mode: 0700
+
+- name: "Glance | Get latest version of Glance release"
+  become_user: service_glance
+  uri:
+    url: "https://api.github.com/repos/glanceapp/glance/releases/latest"
+    return_content: yes
+  register: url_content
+
+- name: "Glance | Set latest version variable"
+  become_user: service_glance
+  set_fact:
+    glance_version: "{{ url_content.json.name }}"
+
+- name: "Glance | Download the latest version"
+  become_user: service_glance
+  get_url:
+    url: "https://github.com/glanceapp/glance/releases/download/{{ glance_version }}/glance-linux-{{ arch }}.tar.gz"
+    dest: /opt/glance/glance-linux.tar.gz
+
+- name: "Glance | Extract archive"
+  become_user: "service_glance"
+  ansible.builtin.shell: "cd /opt/glance/; tar xvzf /opt/glance/glance-linux.tar.gz"
+  ignore_errors: true
+
+- name: "Glance | Create configuration directory"
+  become_user: service_glance
+  file:
+    path: "/etc/glance/"
+    state: directory
+    owner: "service_glance"
+    mode: 0700
+
+- name: "Glance | Copy configuration"
+  become_user: service_glance
+  ansible.builtin.copy: 
+    src  : "{{ item.path }}"
+    dest : "/etc/glance/"
+  with_items:
+    - { path: "../files/glance/config" }
+    - { path: "../files/glance/assets" }
+
+- name: "Glance | Create systemd service"
+  ansible.builtin.copy: 
+    src  : ../files/glance/glance.service
+    dest : /etc/systemd/system/
+
+- name: "Glance | Enable service"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.shell: "{{ item.commandLine }}"
+  with_items:
+    - { commandLine: "sudo systemctl daemon-reload" }
+    - { commandLine: "sudo systemctl enable glance.service" }
+  ignore_errors: true

@@ -52,7 +52,7 @@
    - include_tasks: tasks/firefox.yml
    - include_tasks: tasks/docker.yml
    - include_tasks: tasks/draw_io.yml
-   - include_tasks: tasks/homer.yml
+   - include_tasks: tasks/glance.yml
    - include_tasks: tasks/n8n.yml
    - include_tasks: tasks/portainer.yml
    - include_tasks: tasks/secubian-jupyternotebook.yml

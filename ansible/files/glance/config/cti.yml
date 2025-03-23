@@ -1,0 +1,124 @@
+- name: CTI
+  width: wide
+  hide-desktop-navigation: false
+  center-vertically: true
+  columns:
+    - size: small
+      widgets:
+        - type: clock
+          hour-format: 24h
+          timezones:
+            - timezone: Europe/Paris
+              label: Paris
+            - timezone: America/New_York
+              label: New York
+            - timezone: Asia/Tokyo
+              label: Tokyo
+        - type: releases
+          show-source-icon: true
+          repositories:
+            - glanceapp/glance
+            - dfir-iris/iris-web
+            - google/timesketch
+        - type: reddit
+          subreddit: selfhosted
+          sort-by: new
+          limit: 5
+          show-thumbnails: false
+    - size: full
+      widgets:
+        - type: rss
+          title: Alertes & Menaces
+          color: 345 0 49
+          style: horizontal-cards
+          feeds:
+            - url: https://www.cert.ssi.gouv.fr/cti/feed/
+              title: ANSSI CERT-FR -- CTI
+            - url : https://www.cert.ssi.gouv.fr/ioc/feed/
+              title: ANSSI CERT-FR -- IOC
+            - url : https://www.cert.ssi.gouv.fr/alerte/feed/
+              title: ANSSI CERT-FR -- Alertes
+            - url : https://www.cyber.gov.au/rss/alerts
+              title: Australian Cyber Security Alerts
+              headers:
+                User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36
+            - url : https://www.recordedfuture.com/feed
+              title: Recorded Future
+            - url : https://gbhackers.com/category/threatsattacks/feed/
+              title: GBHackers - ThreatsAttacks
+            - url : https://feeds.feedburner.com/Unit42
+              title: Unit42
+            - url : https://www.malwarebytes.com/blog/feed/index.xml
+              title: MalwareBytes
+            - url : https://feeds.feedburner.com/threatintelligence/pvexyqv7v0v
+              title: Google ThreatIntelligence
+            - url : https://www.reliaquest.com/feed/
+              title : ReliaQuest
+            - url: https://blog.talosintelligence.com/rss/
+              title: Cisco Talos
+            - url: https://www.redcanary.com/blog/feed/
+              title: RedCanary
+            - url: https://thedfirreport.com/feed/
+              title: DFIR Report
+              headers:
+                User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36
+            - url: http://windowsir.blogspot.com/feeds/posts/default
+              title: Windows Incident Response
+        - type: rss
+          title: News IT
+          style: horizontal-cards
+          feeds:
+            - url: https://www.group-ib.com/blog/rss.xml
+              title: GroupIB
+            - url : https://isc.sans.edu/rssfeed.xml
+              title: SANS ISC
+            - url : https://www.bleepingcomputer.com/feed/
+              title: BleepingComputer
+              headers:
+                User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36
+        - type: rss
+          title: RedTeam Intel
+          style: horizontal-cards
+          feeds:
+            - url : https://www.elastic.co/security-labs/rss/feed.xml
+              title: Elastic Security Labs
+              headers:
+                User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36
+            - url: https://www.synacktiv.com/en/feed/lastblog.xml
+              title: Synacktiv
+            - url: https://www.reddit.com/r/redteamsec/.rss
+              title: Reddit RedTeamSec
+              headers:
+                User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36
+        - type: rss
+          title: Vulnerabilities
+          style: horizontal-cards
+          feeds:
+            - url: https://www.exploit-db.com/rss.xml
+              title: ExploitDB
+            - url: https://status.cloud.microsoft/api/feed/mac
+              title: Microsoft Admin Center Status
+            - url: https://azurestatuscdn.azureedge.net/status/feed/
+              title: Microsoft Azure Center Status
+            - url: https://vulnerability.circl.lu/comments/feed.atom
+              title: Vulnerbility.circl.lu
+            - url: https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json
+              title: CISA Known Exploited Vulnerabilities Catalog
+            - url: https://www.zerodayinitiative.com/rss/upcoming/
+              title: ZeroDayInitiative
+            - url: http://www.kb.cert.org/vulfeed/
+              title: CERT Vulnerabilities feed
+        - type: rss
+          title: Leak & Breach
+          style: horizontal-cards
+          feeds:
+            - url: https://leak-lookup.com/rss
+              title: LeakLookup
+            - url: https://gbhackers.com/category/data-breach/feed/
+              title: GBHackers
+            - url: https://www.securityweek.com/category/data-breaches/feed/
+              title: Data Breaches Archives - SecurityWeek
+              headers:
+                User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36
+            - url: http://feeds.feedburner.com/HaveIBeenPwnedLatestBreaches
+              title: HaveIBeenPwned

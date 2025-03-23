@@ -1,0 +1,14 @@
+[Unit]
+Description=Glance server
+After=network.target
+
+[Service]
+User=service_glance
+ExecStart=/opt/glance/glance --config /etc/glance/config/glance.yml
+ExecReload=/opt/glance/glance --config /etc/glance/config/glance.yml
+Type=simple
+Restart=always
+
+[Install]
+WantedBy=default.target
+RequiredBy=network.target
