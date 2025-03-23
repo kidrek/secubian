@@ -5,6 +5,34 @@
   register: timesketchDirectory
   when: arch == "amd64"
 
+## Remove previous installation
+- name: "Timesketch | Stop ands remove old containers"
+  docker_container:
+    name: "{{ item }}"
+    state: absent
+    restart_policy: no
+  loop:
+    - "timesketch-web"
+    - "timesketch-web-legacy"
+    - "timesketch-worker"
+    - "opensearch"
+    - "postgres"
+    - "redis"
+    - "nginx"
+  when: 
+    - arch == "amd64"
+    - timesketchDirectory.stat.exists
+  ignore_errors: True
+
+- name: "Timesketch | Remove old folder"
+  file:
+    path: "{{ DFIR_toolsDir }}/timesketch"
+    state: absent
+  when: 
+    - arch == "amd64"
+    - timesketchDirectory.stat.exists
+  ignore_errors: True
+
 - name: "Timesketch | Create folder"
   become_user: "{{ ansible_user }}"
   file:
@@ -14,7 +42,6 @@
     group: "{{ ansible_user }}"
   when: 
     - arch == "amd64"
-    - not timesketchDirectory.stat.exists
 
 - name: "Timesketch | Download setup script"
   become_user: "{{ ansible_user }}"
@@ -24,14 +51,12 @@
     mode: 0755 
   when: 
     - arch == "amd64"
-    - not timesketchDirectory.stat.exists
 
 - name: "Timesketch | Execute deploy script"
   become_user: "{{ ansible_user }}"
   ansible.builtin.shell: cd {{ DFIR_toolsDir }}/timesketch; yes N | sudo ./deploy_timesketch.sh;
   when: 
     - arch == "amd64"
-    - not timesketchDirectory.stat.exists
 
 - name: "Timesketch | Change ownership"
   ansible.builtin.file:
@@ -42,8 +67,6 @@
     recurse: yes
   when: 
     - arch == "amd64"
-    - not timesketchDirectory.stat.exists
-
 
 - name: "Timesketch | modify memory usage"
   become_user: "{{ ansible_user }}"
@@ -53,7 +76,6 @@
     regexp: "^OPENSEARCH_MEM_USE_GB="
   when: 
     - arch == "amd64"
-    - not timesketchDirectory.stat.exists
 
 - name: "Timesketch | modify HTTPS TCP Port"
   become_user: "{{ ansible_user }}"
@@ -63,7 +85,6 @@
     regexp: "^NGINX_HTTPS_PORT="
   when: 
     - arch == "amd64"
-    - not timesketchDirectory.stat.exists
 
 - name: "Timesketch | modify HTTP TCP Port"
   become_user: "{{ ansible_user }}"
@@ -73,8 +94,15 @@
     regexp: "^NGINX_HTTP_PORT="
   when: 
     - arch == "amd64"
-    - not timesketchDirectory.stat.exists
 
+- name: "Timesketch | Increase the CSRF token time limit"
+  become_user: "{{ ansible_user }}"
+  lineinfile:
+    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/etc/timesketch/timesketch.conf"
+    line: 'WTF_CSRF_TIME_LIMIT = 3600'
+    regexp: "^WTF_CSRF_TIME_LIMIT ="
+  when: 
+    - arch == "amd64"
 
 - name: "Timesketch | Download tags file"
   become_user: "{{ ansible_user }}"
@@ -85,14 +113,12 @@
     force: true
   when: 
     - arch == "amd64"
-    - not timesketchDirectory.stat.exists
 
 - name: "Timesketch | Start docker"
   become_user: "{{ ansible_user }}"
   ansible.builtin.shell: cd {{ DFIR_toolsDir }}/timesketch/timesketch; sudo docker-compose up -d;
   when: 
     - arch == "amd64"
-    - not timesketchDirectory.stat.exists
 
 - name: "Timesketch | Check if container is running"
   wait_for:
@@ -100,7 +126,6 @@
     port: 5080
   when: 
     - arch == "amd64"
-    - not timesketchDirectory.stat.exists
 
 #- name: "Timesketch | Find the rule files"
 ##  become_user: "{{ ansible_user }}"
@@ -112,7 +137,6 @@
 #  register: rulefiles
 #  when: 
 #    - arch == "amd64"
-#    - not timesketchDirectory.stat.exists
 
 #- name: "Timesketch | Copy rules to timesketch"
 ##  become_user: "{{ ansible_user }}"
@@ -124,25 +148,27 @@
 #    - "{{rulefiles.files}}"
 #  when: 
 #    - arch == "amd64"
-#    - not timesketchDirectory.stat.exists
 
-- name: "Timesketch | Add aliases"
-  become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "~/.aliases"
-    create: yes
-    mode: 0644
-    line: 'alias timesketch="cd {{ DFIR_toolsDir }}/timesketch/timesketch; sudo docker-compose up"'
-    regexp: "^alias timesketch="
-  when: 
-    - arch == "amd64"
-    - not timesketchDirectory.stat.exists
 
 ## Timesketch Configuration
 ### Generate password
 - include_tasks: tasks/keepassXC_generate_password.yml
 
 ### Add Timesketch entry in keepassXC
+- name: "Timesketch | Remove old Entry in keepassXC"
+  become_user: "{{ ansible_user }}"
+  shell: "printf \"%s\" {{ keepass_db_password }} | keepassxc-cli rm {{ keepass_db_path }} timesketch"
+  delegate_to: localhost
+  register: result
+  ignore_errors: True
+
+- name: "Timesketch | Remove old Entry in recycle keepassXC"
+  become_user: "{{ ansible_user }}"
+  shell: "printf \"%s\" {{ keepass_db_password }} | keepassxc-cli rm {{ keepass_db_path }} timesketch"
+  delegate_to: localhost
+  register: result
+  ignore_errors: True
+
 - name: "Timesketch | Add Entry in keepassXC"
   become_user: "{{ ansible_user }}"
   shell: "printf \"%s\n%s\" {{ keepass_db_password }} {{ password }} | keepassxc-cli add --url 'http://127.0.0.1:5080/' -u '{{ ansible_user }}' -p {{ keepass_db_path }} timesketch"
@@ -150,13 +176,27 @@
   register: result
   ignore_errors: False
 
-
 - name: "Timesketch | Create user"
   become_user: "{{ ansible_user }}"
   ansible.builtin.shell: sleep 30; cd {{ DFIR_toolsDir }}/timesketch/timesketch; sudo docker-compose exec timesketch-web tsctl create-user {{ ansible_user }} --password {{ password }};
   when: 
     - arch == "amd64"
-    - not timesketchDirectory.stat.exists
+
+## TODO / remove old timesketch session
+#docker exec timesketch-worker bash -c "pip3 install timesketch-import-client"
+#docker exec timesketch-worker bash -c "rm -f /root/.timesketchrc
+#docker exec timesketch-worker bash -c "rm -f /root/.timesketch.token
+- name: "Timesketch | timesketch-import-client python module installation"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/timesketch/timesketch; sudo docker-compose exec timesketch-worker bash -c "pip3 install timesketch-import-client"
+  when: 
+    - arch == "amd64"
+
+- name: "Timesketch | remove old timesketch session handle"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/timesketch/timesketch; sudo docker-compose exec timesketch-worker bash -c "rm -f /root/.timesketchrc; rm -f /root/.timesketch.token"
+  when: 
+    - arch == "amd64"
 
 - name: "Timesketch | Stop a container"
   docker_container:
@@ -173,5 +213,4 @@
     - "nginx"
   when: 
     - arch == "amd64"
-    - not timesketchDirectory.stat.exists
 
