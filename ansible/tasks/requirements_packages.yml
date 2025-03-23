@@ -3,6 +3,7 @@
     name: 
       - cargo
       - feh
+      - gimp
       - git-all
       - golang
       - gparted
