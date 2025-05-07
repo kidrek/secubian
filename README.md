@@ -24,6 +24,10 @@ Voici une liste non exhaustive des outils présents :
 
 PS: D'autres outils dédiés aux domaines du Pentest et de l'OSINT sont également disponibles.
 
+## Deploiement
+Le déploiement s'effectue sur une installation Debian ou Ubuntu, grâce à Ansible.
+L'ensemble des actions à réaliser sont listées ici : [(lien)](./ansible/README.md)
+
 ## La documentation
 Le projet intègre 2 sous-projets dérivés nommés, [secubian-wiki](https://github.com/kidrek/secubian-wiki) et [secubian-JupyterNotebook](https://github.com/kidrek/secubian-JupyterNotebook). Ces derniers sont téléchargés en local dans le répertoire ``$HOME/Documents/Documentation`` et ``$HOME/Documents/Playbooks``, respectivement, de votre profil utilisateur. Ils permettent d'apporter de la documentation et de la méthodologie disponibles même OFFLINE.
 
