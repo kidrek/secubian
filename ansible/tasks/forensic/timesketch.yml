@@ -61,7 +61,7 @@
 - name: "Timesketch | Change ownership"
   ansible.builtin.file:
     state: directory
-    path: "{{ DFIR_toolsDir }}/timesketch"
+    path: "{{ DFIR_toolsDir }}/timesketch/timesketch/upload"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     recurse: yes
