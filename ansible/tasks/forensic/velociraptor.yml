@@ -2,19 +2,33 @@
   uri:
     url: "https://api.github.com/repos/Velocidex/velociraptor/releases/latest"
     return_content: true
-  register: latest_version
+  register: velociraptor_release
 
 - name: Prints velociraptor version
   ansible.builtin.debug:
     msg:
-    - "La dernière version de Velociraptor est : {{ latest_version.json.tag_name }}"
+    - "La dernière version de Velociraptor est : {{ velociraptor_release.json.tag_name }}"
 
-- name: "Velociraptor - Download the latest version"
-  loop: "{{ latest_version.json.assets }}"
-  when: "'linux-{{ arch }}' in item.name"
-  get_url:
-    url: "{{ item.browser_download_url }}"
-    dest: "/usr/bin/velociraptor"
+#- name: "Velociraptor - Download the latest version"
+#  loop: "{{ latest_version.json.assets }}"
+#  when: "'linux-{{ arch }}' in item.name"
+#  get_url:
+#    url: "{{ item.browser_download_url }}"
+#    dest: "/usr/bin/velociraptor"
+
+- name: Build Velociraptor asset name pattern
+  ansible.builtin.set_fact:
+    velociraptor_asset_pattern: "linux-{{ arch }}"
+
+- name: Set Velociraptor download URL (latest)
+  ansible.builtin.set_fact:
+    velociraptor_release_url: >-
+      {{
+        velociraptor_release.json.assets
+        | selectattr('name', 'search', velociraptor_asset_pattern)
+        | map(attribute='browser_download_url')
+        | first
+      }}
 
 - name: "Velociraptor - Set executable"
   ansible.builtin.shell: chmod +x /usr/bin/velociraptor
@@ -25,7 +39,7 @@
 
 ## Create service
 - name: "Velociraptor - Create service"
-  ansible.builtin.shell: cd /opt/; velociraptor --config server.config.yaml debian server; dpkg -i velociraptor_server_*.deb
+  ansible.builtin.shell: cd /opt/; velociraptor --config server.config.yaml debian server; dpkg -i velociraptor-server-*.deb
   ignore_errors: True
 
 ## Create user
