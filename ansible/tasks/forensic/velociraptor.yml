@@ -30,6 +30,11 @@
         | first
       }}
 
+- name: "Velociraptor - Download the latest version"
+  get_url:
+    url: "{{ velociraptor_release_url }}"
+    dest: "/usr/bin/velociraptor"
+
 - name: "Velociraptor - Set executable"
   ansible.builtin.shell: chmod +x /usr/bin/velociraptor
 
