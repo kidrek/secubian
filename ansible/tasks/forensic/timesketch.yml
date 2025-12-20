@@ -61,7 +61,7 @@
 - name: "Timesketch | Change ownership"
   ansible.builtin.file:
     state: directory
-    path: "{{ DFIR_toolsDir }}/timesketch/timesketch/upload"
+    path: "{{ DFIR_toolsDir }}/timesketch/"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     recurse: yes
@@ -205,7 +205,6 @@
     restart_policy: no
   loop:
     - "timesketch-web"
-    - "timesketch-web-legacy"
     - "timesketch-worker"
     - "opensearch"
     - "postgres"
