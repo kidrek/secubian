@@ -1,44 +1,88 @@
+# =====================================================================
+# CYBERCHEF : le couteau suisse pour décoder (base64, hex, XOR, déchiffrement...)
+# Plateforme web, servie par nginx (installé par sphinx-wiki.yml)
+# Accès : http://127.0.0.1/cyberchef
+# =====================================================================
 
-- name: "CyberChef | Get latest version of CyberChef from Github API"
+# unzip : il en faut pour décompresser le .zip (sinon "unarchive" plante)
+- name: "CyberChef | Installer unzip"
+  ansible.builtin.apt:
+    name: unzip
+    state: present
+
+- name: "CyberChef | Chercher la dernière version sur GitHub"
+  ansible.builtin.uri:
+    url: "https://api.github.com/repos/gchq/CyberChef/releases/latest"
+    return_content: true
+  register: cyberchef_release
+
+# Avant on devinait le nom du zip ("CyberChef_v11.5.0.zip") : en v11.5.0 il a changé
+# ça donnait une erreur 404. On prend directement le .zip dans la liste
+# des fichiers de la release
+- name: "CyberChef | Trouver le zip à télécharger"
+  ansible.builtin.set_fact:
+    cyberchef_latest_tag_name: "{{ cyberchef_release.json.tag_name }}"
+    cyberchef_asset: >-
+      {{ cyberchef_release.json.assets
+         | selectattr('name', 'search', '\.zip$')
+         | first }}
+
+- name: "CyberChef | Afficher ce qu'on télécharge"
+  ansible.builtin.debug:
+    msg: "CyberChef {{ cyberchef_latest_tag_name }} : {{ cyberchef_asset.name }}"
+
+# Un zip c'est pas un programme : 0644 suffit
+- name: "CyberChef | Télécharger"
   become_user: "{{ ansible_user }}"
-  uri:
-    url: "https://api.github.com/repos/gchq/cyberchef/releases/latest"
-    return_content: yes
-  register: url_content
+  ansible.builtin.get_url:
+    url: "{{ cyberchef_asset.browser_download_url }}"
+    dest: "{{ DFIR_toolsDir }}/data_processing/{{ cyberchef_asset.name }}"
+    mode: "0644"
 
-- name: "CyberChef | Set latest version tag name in cyberchef_latest_version variable"
-  become_user: "{{ ansible_user }}"
-  set_fact:
-    cyberchef_latest_tag_name: "{{ url_content.json.tag_name }}"
+# On repart d'un dossier propre pour pas mélanger plusieurs versions
+- name: "CyberChef | Vider l'ancien dossier web"
+  ansible.builtin.file:
+    path: /var/www/html/cyberchef/
+    state: absent
 
-- name: "CyberChef | Install"
-  become_user: "{{ ansible_user }}"
-  get_url:
-    url: "https://github.com/gchq/cyberchef/releases/download/{{ cyberchef_latest_tag_name }}/CyberChef_{{ cyberchef_latest_tag_name }}.zip"
-    dest: "{{ DFIR_toolsDir }}/data_processing/{{ cyberchef_latest_tag_name }}.zip"
-    mode: 0755
-
-- name: "CyberChef | Create directory"
-  file:
-    path: "/var/www/html/cyberchef/"
+# www-data = le user de nginx. Il peut lire, personne d'autre peut modifier.
+- name: "CyberChef | Créer le dossier web"
+  ansible.builtin.file:
+    path: /var/www/html/cyberchef/
     state: directory
-    owner: "www-data"
-    group: "www-data"
-    mode: 0500
+    owner: www-data
+    group: www-data
+    mode: "0500"
 
-- name: "CyberChef | Extract html file"
+- name: "CyberChef | Décompresser dans le dossier web"
   ansible.builtin.unarchive:
-    src: "{{ DFIR_toolsDir }}/data_processing/{{ cyberchef_latest_tag_name }}.zip"
-    dest: "/var/www/html/cyberchef/"
-    owner: "www-data"
-    group: "www-data"
-    mode: 0500
+    src: "{{ DFIR_toolsDir }}/data_processing/{{ cyberchef_asset.name }}"
+    dest: /var/www/html/cyberchef/
+    remote_src: true
+    owner: www-data
+    group: www-data
+    mode: "0500"
 
-- name: "CyberChef | Create symbolic link"
-  file:
-    src: "/var/www/html/cyberchef/CyberChef_{{ cyberchef_latest_tag_name }}.html"
-    dest: "/var/www/html/cyberchef/index.html"
+# Le nom de la page HTML peut changer aussi selon la version,
+# donc on va la chercher au lieu de deviner.
+- name: "CyberChef | Trouver la page HTML de CyberChef"
+  ansible.builtin.find:
+    paths: /var/www/html/cyberchef/
+    patterns: "CyberChef*.html"
+    recurse: true
+  register: cyberchef_html
+
+- name: "CyberChef | Vérifier qu'on a trouvé la page"
+  ansible.builtin.assert:
+    that: cyberchef_html.files | length > 0
+    fail_msg: "Pas de fichier CyberChef*.html dans le zip, regarde le contenu de /var/www/html/cyberchef/"
+
+# index.html pointe vers la page trouvée, comme ça l'adresse change jamais
+- name: "CyberChef | Lien index.html vers la page"
+  ansible.builtin.file:
+    src: "{{ (cyberchef_html.files | first).path }}"
+    dest: /var/www/html/cyberchef/index.html
     state: link
-    owner: "www-data"
-    group: "www-data"
-    mode: 0500
+    force: true
+    owner: www-data
+    group: www-data

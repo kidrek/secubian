@@ -1,215 +1,187 @@
+# =====================================================================
+# TIMESKETCH (Google) : pour analyser des timelines à plusieurs, dans le navigateur
+# Accès : http://127.0.0.1:5080  (identifiant : ton user, mot de passe dans KeePassXC)
+# Les conteneurs sont éteints à la fin pour économiser la RAM.
+#
+# Ce qui a changé : avant, le playbook SUPPRIMAIT et réinstallait Timesketch
+# à chaque lancement -> toutes tes timelines étaient perdues.
+# Maintenant il l'installe une seule fois. Pour réinstaller de zéro, supprime
+# le fichier {{ DFIR_toolsDir }}/timesketch/.secubian_installed et relance.
+# =====================================================================
 
-- name: "Timesketch | Check if folder exists"
-  stat:
-    path: "{{ DFIR_toolsDir }}/timesketch"
-  register: timesketchDirectory
-  when: arch == "amd64"
+# Timesketch n'existe qu'en version PC classique (amd64)
+- name: "Timesketch | Trouver l'architecture du PC"
+  ansible.builtin.set_fact:
+    deb_arch: "{{ arch | default('arm64' if ansible_architecture == 'aarch64' else 'amd64') }}"
 
-## Remove previous installation
-- name: "Timesketch | Stop ands remove old containers"
-  docker_container:
-    name: "{{ item }}"
-    state: absent
-    restart_policy: no
-  loop:
-    - "timesketch-web"
-    - "timesketch-web-legacy"
-    - "timesketch-worker"
-    - "opensearch"
-    - "postgres"
-    - "redis"
-    - "nginx"
-  when: 
-    - arch == "amd64"
-    - timesketchDirectory.stat.exists
-  ignore_errors: True
+- name: "Timesketch | Pas dispo sur ce processeur"
+  ansible.builtin.debug:
+    msg: "Timesketch existe seulement en amd64, on passe."
+  when: deb_arch != 'amd64'
 
-- name: "Timesketch | Remove old folder"
-  file:
-    path: "{{ DFIR_toolsDir }}/timesketch"
-    state: absent
-  when: 
-    - arch == "amd64"
-    - timesketchDirectory.stat.exists
-  ignore_errors: True
+# Avant y'avait "when: arch == amd64" sur chaque tâche. Un "block" fait ça en une fois.
+- name: "Timesketch | Installation"
+  when: deb_arch == 'amd64'
+  block:
+    # Ce petit fichier est créé tout à la fin de l'install : s'il est là, tout s'est bien passé
+    - name: "Timesketch | Déjà installé ?"
+      ansible.builtin.stat:
+        path: "{{ DFIR_toolsDir }}/timesketch/.secubian_installed"
+      register: timesketch_installed
 
-- name: "Timesketch | Create folder"
-  become_user: "{{ ansible_user }}"
-  file:
-    path: "{{ DFIR_toolsDir }}/timesketch"
-    state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-  when: 
-    - arch == "amd64"
+    - name: "Timesketch | Déjà installé, on passe"
+      ansible.builtin.debug:
+        msg: "Timesketch est déjà installé, rien à faire."
+      when: timesketch_installed.stat.exists
 
-- name: "Timesketch | Download setup script"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.get_url:
-    url: https://raw.githubusercontent.com/google/timesketch/master/contrib/deploy_timesketch.sh
-    dest: "{{ DFIR_toolsDir }}/timesketch/deploy_timesketch.sh"
-    mode: 0755 
-  when: 
-    - arch == "amd64"
+    - name: "Timesketch | Nouvelle installation"
+      when: not timesketch_installed.stat.exists
+      block:
+        # S'il reste une install ratée d'avant, on fait le ménage
+        - name: "Timesketch | Supprimer les vieux conteneurs"
+          community.docker.docker_container:
+            name: "{{ item }}"
+            state: absent
+          loop:
+            - timesketch-web
+            - timesketch-web-legacy
+            - timesketch-worker
+            - opensearch
+            - postgres
+            - redis
+            - nginx
 
-- name: "Timesketch | Execute deploy script"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/timesketch; yes N | sudo ./deploy_timesketch.sh;
-  when: 
-    - arch == "amd64"
+        - name: "Timesketch | Supprimer le vieux dossier"
+          ansible.builtin.file:
+            path: "{{ DFIR_toolsDir }}/timesketch"
+            state: absent
 
-- name: "Timesketch | Change ownership"
-  ansible.builtin.file:
-    state: directory
-    path: "{{ DFIR_toolsDir }}/timesketch/"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    recurse: yes
-  when: 
-    - arch == "amd64"
+        - name: "Timesketch | Créer le dossier"
+          ansible.builtin.file:
+            path: "{{ DFIR_toolsDir }}/timesketch"
+            state: directory
+            owner: "{{ ansible_user }}"
+            group: "{{ ansible_user }}"
+            mode: "0755"
 
-- name: "Timesketch | modify memory usage"
-  become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/config.env"
-    line: 'OPENSEARCH_MEM_USE_GB=4'
-    regexp: "^OPENSEARCH_MEM_USE_GB="
-  when: 
-    - arch == "amd64"
+        - name: "Timesketch | Télécharger le script d'installation officiel"
+          ansible.builtin.get_url:
+            url: https://raw.githubusercontent.com/google/timesketch/master/contrib/deploy_timesketch.sh
+            dest: "{{ DFIR_toolsDir }}/timesketch/deploy_timesketch.sh"
+            mode: "0755"
 
-- name: "Timesketch | modify HTTPS TCP Port"
-  become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/config.env"
-    line: 'NGINX_HTTPS_PORT=5443'
-    regexp: "^NGINX_HTTPS_PORT="
-  when: 
-    - arch == "amd64"
+        # "yes N" répond "non" à toutes les questions du script
+        # (on démarre et on crée le user nous-mêmes juste après)
+        - name: "Timesketch | Lancer le script d'installation"
+          ansible.builtin.shell: yes N | ./deploy_timesketch.sh
+          args:
+            chdir: "{{ DFIR_toolsDir }}/timesketch"
 
-- name: "Timesketch | modify HTTP TCP Port"
-  become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/config.env"
-    line: 'NGINX_HTTP_PORT=5080'
-    regexp: "^NGINX_HTTP_PORT="
-  when: 
-    - arch == "amd64"
+        - name: "Timesketch | Rendre le dossier à ton user"
+          ansible.builtin.file:
+            path: "{{ DFIR_toolsDir }}/timesketch/"
+            state: directory
+            owner: "{{ ansible_user }}"
+            group: "{{ ansible_user }}"
+            recurse: true
 
-- name: "Timesketch | Increase the CSRF token time limit"
-  become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/etc/timesketch/timesketch.conf"
-    line: 'WTF_CSRF_TIME_LIMIT = 3600'
-    regexp: "^WTF_CSRF_TIME_LIMIT ="
-  when: 
-    - arch == "amd64"
+        # Mémoire d'OpenSearch (4 Go) et ports (5080/5443 pour pas gêner nginx sur 80/443)
+        - name: "Timesketch | Régler config.env"
+          ansible.builtin.lineinfile:
+            path: "{{ DFIR_toolsDir }}/timesketch/timesketch/config.env"
+            line: "{{ item.line }}"
+            regexp: "{{ item.regexp }}"
+          loop:
+            - { line: "OPENSEARCH_MEM_USE_GB=4", regexp: "^OPENSEARCH_MEM_USE_GB=" }
+            - { line: "NGINX_HTTPS_PORT=5443", regexp: "^NGINX_HTTPS_PORT=" }
+            - { line: "NGINX_HTTP_PORT=5080", regexp: "^NGINX_HTTP_PORT=" }
 
-- name: "Timesketch | Download tags file"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.get_url:
-    url: https://raw.githubusercontent.com/kidrek/AllthingsTimesketch/refs/heads/master/tags.yaml
-    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/etc/timesketch/tags.yaml"
-    mode: 0644
-    force: true
-  when: 
-    - arch == "amd64"
+        # Le jeton de sécurité des formulaires dure 1h au lieu de quelques minutes
+        - name: "Timesketch | Allonger la durée du jeton CSRF"
+          ansible.builtin.lineinfile:
+            path: "{{ DFIR_toolsDir }}/timesketch/timesketch/etc/timesketch/timesketch.conf"
+            line: "WTF_CSRF_TIME_LIMIT = 3600"
+            regexp: "^WTF_CSRF_TIME_LIMIT ="
 
-- name: "Timesketch | Start docker"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/timesketch/timesketch; sudo docker-compose up -d;
-  when: 
-    - arch == "amd64"
+        - name: "Timesketch | Télécharger le fichier de tags"
+          ansible.builtin.get_url:
+            url: https://raw.githubusercontent.com/kidrek/AllthingsTimesketch/refs/heads/master/tags.yaml
+            dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/etc/timesketch/tags.yaml"
+            mode: "0644"
+            force: true
 
-- name: "Timesketch | Check if container is running"
-  wait_for:
-    host: "127.0.0.1"
-    port: 5080
-  when: 
-    - arch == "amd64"
+        # "docker compose" (avec un espace) = la version moderne de docker-compose
+        - name: "Timesketch | Démarrer"
+          ansible.builtin.command: docker compose up -d
+          args:
+            chdir: "{{ DFIR_toolsDir }}/timesketch/timesketch"
 
-#- name: "Timesketch | Find the rule files"
-##  become_user: "{{ ansible_user }}"
-#  ansible.builtin.find:
-#    paths: "{{ DETECTION_rulesDir }}/sigma/sigmaHQ/rules/windows"
-#    recurse: yes
-#    patterns: '.*\.yml'
-#    use_regex: true
-#  register: rulefiles
-#  when: 
-#    - arch == "amd64"
+        - name: "Timesketch | Attendre que ça réponde"
+          ansible.builtin.wait_for:
+            host: 127.0.0.1
+            port: 5080
+            timeout: 600
 
-#- name: "Timesketch | Copy rules to timesketch"
-##  become_user: "{{ ansible_user }}"
-#  ansible.builtin.copy: 
-#    src: "{{ item.path }}"
-#    remote_src: yes
-#    dest: "{{ DFIR_toolsDir }}/timesketch/timesketch/etc/timesketch/sigma/rules/"
-#  with_items:
-#    - "{{rulefiles.files}}"
-#  when: 
-#    - arch == "amd64"
+        - name: "Timesketch | Mot de passe"
+          ansible.builtin.include_tasks: tasks/keepassXC_get_or_create_password.yml
+          vars:
+            keepass_entry: "timesketch"
+            keepass_url: "http://127.0.0.1:5080/"
+            keepass_username: "{{ ansible_user }}"
 
+        # "-T" : obligatoire quand c'est pas toi qui tapes dans un terminal
+        # (sinon erreur "the input device is not a TTY").
+        # Au lieu d'attendre 30 secondes au pif, on réessaie jusqu'à ce que ça marche.
+        - name: "Timesketch | Créer ton compte"
+          ansible.builtin.command: >-
+            docker compose exec -T timesketch-web
+            tsctl create-user {{ ansible_user }} --password {{ password | quote }}
+          args:
+            chdir: "{{ DFIR_toolsDir }}/timesketch/timesketch"
+          register: timesketch_user
+          until: timesketch_user.rc == 0
+          retries: 10
+          delay: 15
+          no_log: true
 
-## Timesketch Configuration
-### Generate password
-- include_tasks: tasks/keepassXC_generate_password.yml
+        # Le client d'import, pour envoyer des timelines depuis le worker
+        - name: "Timesketch | Installer le client d'import"
+          ansible.builtin.command: docker compose exec -T timesketch-worker pip3 install timesketch-import-client
+          args:
+            chdir: "{{ DFIR_toolsDir }}/timesketch/timesketch"
 
-### Add Timesketch entry in keepassXC
-- name: "Timesketch | Remove old Entry in keepassXC"
-  become_user: "{{ ansible_user }}"
-  shell: "printf \"%s\" {{ keepass_db_password }} | keepassxc-cli rm {{ keepass_db_path }} timesketch"
-  delegate_to: localhost
-  register: result
-  ignore_errors: True
+        - name: "Timesketch | Supprimer les vieilles sessions"
+          ansible.builtin.command: docker compose exec -T timesketch-worker rm -f /root/.timesketchrc /root/.timesketch.token
+          args:
+            chdir: "{{ DFIR_toolsDir }}/timesketch/timesketch"
 
-- name: "Timesketch | Remove old Entry in recycle keepassXC"
-  become_user: "{{ ansible_user }}"
-  shell: "printf \"%s\" {{ keepass_db_password }} | keepassxc-cli rm {{ keepass_db_path }} timesketch"
-  delegate_to: localhost
-  register: result
-  ignore_errors: True
+        # On éteint pour économiser la RAM, et ça redémarre pas tout seul au boot.
+        # (Avant c'était le module docker_container, qui peut vouloir recréer le conteneur et planter)
+        - name: "Timesketch | Pas de démarrage automatique"
+          ansible.builtin.command: >-
+            docker update --restart=no
+            timesketch-web timesketch-worker opensearch postgres redis nginx
+          failed_when: false
 
-- name: "Timesketch | Add Entry in keepassXC"
-  become_user: "{{ ansible_user }}"
-  shell: "printf \"%s\n%s\" {{ keepass_db_password }} {{ password }} | keepassxc-cli add --url 'http://127.0.0.1:5080/' -u '{{ ansible_user }}' -p {{ keepass_db_path }} timesketch"
-  delegate_to: localhost
-  register: result
-  ignore_errors: False
+        - name: "Timesketch | Éteindre"
+          ansible.builtin.command: docker compose stop
+          args:
+            chdir: "{{ DFIR_toolsDir }}/timesketch/timesketch"
 
-- name: "Timesketch | Create user"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: sleep 30; cd {{ DFIR_toolsDir }}/timesketch/timesketch; sudo docker-compose exec timesketch-web tsctl create-user {{ ansible_user }} --password {{ password }};
-  when: 
-    - arch == "amd64"
+        # Tout s'est bien passé : on pose le petit fichier "c'est installé"
+        - name: "Timesketch | Noter que l'install est finie"
+          ansible.builtin.file:
+            path: "{{ DFIR_toolsDir }}/timesketch/.secubian_installed"
+            state: touch
+            owner: "{{ ansible_user }}"
+            group: "{{ ansible_user }}"
+            mode: "0644"
 
-## TODO / remove old timesketch session
-#docker exec timesketch-worker bash -c "pip3 install timesketch-import-client"
-#docker exec timesketch-worker bash -c "rm -f /root/.timesketchrc
-#docker exec timesketch-worker bash -c "rm -f /root/.timesketch.token
-- name: "Timesketch | timesketch-import-client python module installation"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/timesketch/timesketch; sudo docker-compose exec timesketch-worker bash -c "pip3 install timesketch-import-client"
-  when: 
-    - arch == "amd64"
-
-- name: "Timesketch | remove old timesketch session handle"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/timesketch/timesketch; sudo docker-compose exec timesketch-worker bash -c "rm -f /root/.timesketchrc; rm -f /root/.timesketch.token"
-  when: 
-    - arch == "amd64"
-
-- name: "Timesketch | Stop a container"
-  docker_container:
-    name: "{{ item }}"
-    state: stopped
-    restart_policy: no
-  loop:
-    - "timesketch-web"
-    - "timesketch-worker"
-    - "opensearch"
-    - "postgres"
-    - "redis"
-    - "nginx"
-  when: 
-    - arch == "amd64"
-
+        - name: "Timesketch | Ajouter l'alias pour lancer Timesketch"
+          become_user: "{{ ansible_user }}"
+          ansible.builtin.lineinfile:
+            path: "/home/{{ ansible_user }}/.aliases"
+            create: true
+            mode: "0644"
+            line: 'alias timesketch="cd {{ DFIR_toolsDir }}/timesketch/timesketch && sudo docker compose up -d; cd -"'
+            regexp: "^alias timesketch="

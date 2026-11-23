@@ -1,175 +1,204 @@
-############# OPENSEARCH AND DASHBOARD ###############
+# =====================================================================
+# OPENSEARCH : la version libre d'Elasticsearch + son interface (Dashboards)
+# + Filebeat et Logstash pour envoyer les logs dedans.
+# Accès : Dashboards http://127.0.0.1:5601  (identifiant : admin, mot de passe dans KeePassXC)
+#
+# ATTENTION : elk.yml utilise AUSSI les ports 9200 et 5601.
+# Lance l'un OU l'autre, pas les deux.
+# =====================================================================
 
-- name: "OpenSearch tool | copy csv_to_json python script to CASES directort"
+# Petit script pour convertir des CSV en JSON, posé dans ton dossier d'enquêtes.
+# "copy" et pas "template" : un script Python peut contenir des {{ }} qui feraient planter Ansible.
+- name: "OpenSearch | Copier le script csv_to_json dans le dossier des cas"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.template: 
-    src  : ../../files/csv_to_json.py 
-    dest : "{{ casesDir }}"
+  ansible.builtin.copy:
+    src: ../../files/csv_to_json.py
+    dest: "{{ casesDir }}/csv_to_json.py"
+    mode: "0755"
 
-- name: "OpenSearch | Update cache and Install requirements"
+- name: "OpenSearch | Installer les prérequis"
   ansible.builtin.apt:
     name:
-      - apt-transport-https
-      - lsb-release 
-      - ca-certificates 
-      - curl 
+      - ca-certificates
+      - curl
       - default-jre
       - gnupg2
-    state: latest
+    state: present
     update_cache: true
 
-- name: "OpenSearch | Add GPG key"
+# ---------------------------------------------------------------------
+# Les clés et dépôts
+# Les clés téléchargées sont au format texte (ASCII). apt les accepte seulement
+# si le fichier finit par ".asc" : sans ça, erreur "NO_PUBKEY" à l'apt update.
+# ---------------------------------------------------------------------
+- name: "OpenSearch | Télécharger les clés"
   ansible.builtin.get_url:
-    url: https://artifacts.opensearch.org/publickeys/opensearch.pgp
-    dest: /usr/share/keyrings/opensearch-keyring
+    url: "{{ item.url }}"
+    dest: "{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - { url: "https://artifacts.opensearch.org/publickeys/opensearch.pgp", dest: "/usr/share/keyrings/opensearch-keyring.asc" }
+    - { url: "https://artifacts.elastic.co/GPG-KEY-elasticsearch", dest: "/usr/share/keyrings/elastic-keyring.asc" }
 
-- name: "OpenSearch | Apt source"
+# On vire les lignes de dépôt de l'ancienne version (avec l'ancien nom de clé),
+# sinon apt plante ("Conflicting values set for option Signed-By")
+- name: "OpenSearch | Supprimer les anciennes lignes de dépôt"
   ansible.builtin.apt_repository:
-    repo: "{{ item.repo }}"
-    state: present
-  with_items:
-    - { repo: "deb [signed-by=/usr/share/keyrings/opensearch-keyring] https://artifacts.opensearch.org/releases/bundle/opensearch/2.x/apt stable main" }
-    - { repo: "deb [signed-by=/usr/share/keyrings/opensearch-keyring] https://artifacts.opensearch.org/releases/bundle/opensearch-dashboards/2.x/apt stable main" }
+    repo: "{{ item }}"
+    state: absent
+  loop:
+    - "deb [signed-by=/usr/share/keyrings/opensearch-keyring] https://artifacts.opensearch.org/releases/bundle/opensearch/2.x/apt stable main"
+    - "deb [signed-by=/usr/share/keyrings/opensearch-keyring] https://artifacts.opensearch.org/releases/bundle/opensearch-dashboards/2.x/apt stable main"
+    - "deb [signed-by=/usr/share/keyrings/elastic-filebeat-keyring] https://artifacts.elastic.co/packages/oss-7.x/apt stable main"
+    - "deb [signed-by=/usr/share/keyrings/elastic-logstash-keyring] https://artifacts.elastic.co/packages/8.x/apt stable main"
 
-## Default login/mdp admin/admin
-- name: "OpenSearch | Update cache and Install OpenSearch"
+# deb822_repository = la nouvelle façon d'ajouter un dépôt (apt_repository va disparaître)
+- name: "OpenSearch | Ajouter les dépôts"
+  ansible.builtin.deb822_repository:
+    name: "{{ item.name }}"
+    types: deb
+    uris: "{{ item.uri }}"
+    suites: stable
+    components: main
+    signed_by: "{{ item.key }}"
+    state: present
+  loop:
+    - { name: "opensearch", uri: "https://artifacts.opensearch.org/releases/bundle/opensearch/2.x/apt", key: "/usr/share/keyrings/opensearch-keyring.asc" }
+    - { name: "opensearch-dashboards", uri: "https://artifacts.opensearch.org/releases/bundle/opensearch-dashboards/2.x/apt", key: "/usr/share/keyrings/opensearch-keyring.asc" }
+    - { name: "elastic-filebeat", uri: "https://artifacts.elastic.co/packages/oss-7.x/apt", key: "/usr/share/keyrings/elastic-keyring.asc" }
+    - { name: "elastic-logstash", uri: "https://artifacts.elastic.co/packages/8.x/apt", key: "/usr/share/keyrings/elastic-keyring.asc" }
+
+# On bloque Filebeat en version 7 et Logstash en version 8
+- name: "OpenSearch | Bloquer les versions de Filebeat et Logstash"
+  ansible.builtin.copy:
+    dest: "/etc/apt/preferences.d/{{ item.file }}"
+    content: |
+      Package: {{ item.package }}
+      Pin: version {{ item.version }}*
+      Pin-Priority: 1001
+    mode: "0644"
+  loop:
+    - { file: "00filebeat", package: "filebeat", version: "7" }
+    - { file: "00logstash", package: "logstash", version: "8" }
+
+# ---------------------------------------------------------------------
+# OpenSearch
+# Depuis la version 2.12, OpenSearch REFUSE de s'installer sans mot de passe admin
+# (variable OPENSEARCH_INITIAL_ADMIN_PASSWORD). C'est pour ça que l'install plantait.
+# ---------------------------------------------------------------------
+- name: "OpenSearch | Mot de passe admin"
+  ansible.builtin.include_tasks: tasks/keepassXC_get_or_create_password.yml
+  vars:
+    keepass_entry: "opensearch"
+    keepass_url: "http://127.0.0.1:5601/"
+    keepass_username: "admin"
+
+- name: "OpenSearch | Installer OpenSearch et Dashboards"
   ansible.builtin.apt:
     name:
       - opensearch
       - opensearch-dashboards
-    state: latest
+    state: present
     update_cache: true
+  environment:
+    OPENSEARCH_INITIAL_ADMIN_PASSWORD: "{{ password }}"
+  no_log: true
 
-#- name: "OpenSearch | Update cache and Install OpenSearch"
-#  become: true
-#  ansible.builtin.shell: "OPENSEARCH_INITIAL_ADMIN_PASSWORD=Secub1@nSecub1@n apt install opensearch"
-
-
-- name: "OpenSearch | Modify configuration"
+# 127.0.0.1 au lieu de 0.0.0.0 : accessible seulement depuis ton PC, pas depuis le réseau.
+# Si tu veux l'ouvrir aux autres machines, remets 0.0.0.0.
+- name: "OpenSearch | Régler la config"
   ansible.builtin.lineinfile:
     path: /etc/opensearch/opensearch.yml
     regexp: "{{ item.regex }}"
     line: "{{ item.value }}"
-  with_items:
-    - { regex: '^network\.host', value: 'network.host: 0.0.0.0' }
+  loop:
+    - { regex: '^network\.host', value: 'network.host: 127.0.0.1' }
     - { regex: '^discovery\.type', value: 'discovery.type: single-node' }
     - { regex: '^plugins\.security\.disabled', value: 'plugins.security.disabled: false' }
+  register: opensearch_conf
 
-- name: "OpenSearch Dashboard | Modify configuration"
+- name: "OpenSearch Dashboards | Régler la config"
   ansible.builtin.lineinfile:
     path: /etc/opensearch-dashboards/opensearch_dashboards.yml
     regexp: "{{ item.regex }}"
     line: "{{ item.value }}"
-  with_items:
+  loop:
     - { regex: '^server\.port', value: 'server.port: 5601' }
-    - { regex: '^server\.host', value: 'server.host: 0.0.0.0' }
+    - { regex: '^server\.host', value: 'server.host: 127.0.0.1' }
+  register: dashboards_conf
 
-############# FILEBEAT ###############
-## Source : https://www.elastic.co/guide/en/beats/filebeat/7.17/setup-repositories.html
+# Avant ils étaient installés mais jamais démarrés.
+# On redémarre seulement si la config a changé.
+- name: "OpenSearch | Démarrer les services"
+  ansible.builtin.systemd_service:
+    name: "{{ item.name }}"
+    daemon_reload: true
+    enabled: true
+    state: "{{ 'restarted' if (item.changed | bool) else 'started' }}"
+  loop:
+    - { name: "opensearch", changed: "{{ opensearch_conf.changed }}" }
+    - { name: "opensearch-dashboards", changed: "{{ dashboards_conf.changed }}" }
 
-- name: "OpenSearch | Add Filebeat"
-  ansible.builtin.get_url:
-    url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
-    dest: /usr/share/keyrings/elastic-filebeat-keyring
-
-- name: "OpenSearch | Add Filebeat apt source"
-  ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/elastic-filebeat-keyring] https://artifacts.elastic.co/packages/oss-7.x/apt stable main"
-    state: present
-
-- name: "Opensearch | Limit filebeat package to version 7"
-  copy: 
-    dest: "/etc/apt/preferences.d/00filebeat"
-    content: |
-      Package: filebeat
-      Pin: version 7*
-      Pin-Priority: 1001
-
-- name: "OpenSearch | Update cache and Install Filebeat"
+# ---------------------------------------------------------------------
+# FILEBEAT : envoie les fichiers de logs vers OpenSearch
+# Source : https://www.elastic.co/guide/en/beats/filebeat/7.17/setup-repositories.html
+# ---------------------------------------------------------------------
+- name: "Filebeat | Installer"
   ansible.builtin.apt:
-    name:
-      - filebeat
-    state: latest
+    name: filebeat
+    state: present
     update_cache: true
 
-- name: "OpenSearch | Create Filebeat inputs.d"
-  file:
-    path: "/etc/filebeat/inputs.d"
+- name: "Filebeat | Créer le dossier des entrées"
+  ansible.builtin.file:
+    path: /etc/filebeat/inputs.d
     state: directory
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
-    mode: 0775
+    mode: "0775"
 
-- name: "OpenSearch | set Filebeat configuration"
-  ansible.builtin.template: 
-    src  : "{{ item.src }}"
-    dest : "{{ item.dst }}"
-  with_items:
+# Filebeat refuse les fichiers de config modifiables par d'autres que root : 0644 root
+- name: "Filebeat | Copier la config"
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dst }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
     - { src: "../../files/filebeat/filebeat.yml", dst: "/etc/filebeat/filebeat.yml" }
     - { src: "../../files/filebeat/inputs_dfir.yml", dst: "/etc/filebeat/inputs.d/dfir.yml" }
 
-- name: "OpenSearch | Enable Filebeat service"
-  ansible.builtin.systemd:
+- name: "Filebeat | Démarrer le service"
+  ansible.builtin.systemd_service:
     name: filebeat
     state: started
     enabled: true
 
-############# LOGSTASH ###############
-- name: "Logstash | Add GPG key"
-  ansible.builtin.get_url:
-    url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
-    dest: /usr/share/keyrings/elastic-logstash-keyring
-
-- name: "Logstash | Apt source"
-  ansible.builtin.apt_repository:
-    repo: "{{ item.repo }}"
-    state: present
-  with_items:
-    - { repo: "deb [signed-by=/usr/share/keyrings/elastic-logstash-keyring] https://artifacts.elastic.co/packages/8.x/apt stable main" }
-  ignore_errors: true
-
-- name: "Logstash | Limit package version to 8"
-  copy: 
-    dest: "/etc/apt/preferences.d/00logstash"
-    content: |
-      Package: logstash
-      Pin: version 8*
-      Pin-Priority: 1001
-
-- name: "Logstash | Install package"
+# ---------------------------------------------------------------------
+# LOGSTASH : transforme les logs avant de les envoyer à OpenSearch
+# Avant y'avait des "ignore_errors" partout : si ça plantait, on le savait pas.
+# ---------------------------------------------------------------------
+- name: "Logstash | Installer"
   ansible.builtin.apt:
-    name:
-      - logstash
-    state: latest
+    name: logstash
+    state: present
     update_cache: true
-  ignore_errors: true
 
-- name: "Logstash | copy logstash.yml on remote host"
-  ansible.builtin.template: 
-    src  : ../../files/logstash/logstash.conf
-    dest : "/etc/logstash/conf.d/logstash.conf"
+- name: "Logstash | Copier la config"
+  ansible.builtin.template:
+    src: ../../files/logstash/logstash.conf
+    dest: /etc/logstash/conf.d/logstash.conf
+    mode: "0644"
 
-#- name: "Logstash | Enable Logstash service"
-#  ansible.builtin.systemd:
-#    name: logstash
-#    state: started
-#    enabled: true
+# Le programme logstash-plugin est toujours au même endroit, pas besoin de fouiller
+# tout /usr/share (c'était super long). On regarde si le plugin OpenSearch est déjà là.
+- name: "Logstash | Plugin OpenSearch déjà installé ?"
+  ansible.builtin.command: /usr/share/logstash/bin/logstash-plugin list logstash-output-opensearch
+  register: logstash_plugin
+  changed_when: false
+  failed_when: false
 
-## https://www.middlewareinventory.com/blog/ansible-find-examples/
-- name : "Logstash | Find logstash-plugin binary"
-  become: true
-  find:
-    paths: /usr/share/
-    patterns: 'logstash-plugin'
-    file_type: "file"
-    recurse: yes
-  register: output
-
-- name : "Logstash | DEBUG show logstash-plugin binary filepath"
-  debug:
-    msg: "{{ output.files[0].path}}"
-
-- name: "Logstash | Install opensearch plugin"
-  become: true
-  ansible.builtin.shell: "{{ item }} install logstash-output-opensearch"
-  with_items: "{{ output.files[0].path}}"
+- name: "Logstash | Installer le plugin OpenSearch"
+  ansible.builtin.command: /usr/share/logstash/bin/logstash-plugin install logstash-output-opensearch
+  when: "'logstash-output-opensearch' not in logstash_plugin.stdout"

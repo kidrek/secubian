@@ -1,71 +1,110 @@
-# Docker setup
-- name: "Docker | Install apt-transport-https"
+# =====================================================================
+# DOCKER : installe Docker + Docker Compose depuis le dépôt officiel de Docker
+# =====================================================================
+
+# Docker range ses paquets par architecture (amd64 = PC classique, arm64 = Raspberry/Mac M).
+# Si la variable "arch" est déjà définie dans ton inventaire, on la garde, sinon on devine.
+- name: "Docker | Trouver l'architecture du PC"
+  ansible.builtin.set_fact:
+    deb_arch: "{{ arch | default('arm64' if ansible_architecture == 'aarch64' else 'amd64') }}"
+
+- name: "Docker | Paquets de base pour ajouter un dépôt"
   ansible.builtin.apt:
     name:
-      - apt-transport-https
       - ca-certificates
-      - lsb-release
+      - curl
       - gnupg
-    state: latest
+    state: present
     update_cache: true
 
-- name: "Docker | Add GPG key"
-  apt_key:
-    url: https://download.docker.com/linux/ubuntu/gpg
+# "apt_key" c'est l'ancienne méthode, elle n'existe plus sur les Ubuntu/Debian récents.
+# Maintenant on range la clé dans /etc/apt/keyrings et on la cite dans la ligne du dépôt.
+- name: "Docker | Créer le dossier des clés"
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+# Avant la clé venait toujours de l'URL "ubuntu", même sur Debian. Là on prend la bonne.
+- name: "Docker | Télécharger la clé GPG de Docker"
+  ansible.builtin.get_url:
+    url: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+
+# Si l'ancienne version du playbook est déjà passée, il reste un fichier docker.list
+# sans "signed-by". Avec le nouveau, apt plante ("Conflicting values set for option Signed-By"),
+# donc on vire l'ancien fichier.
+- name: "Docker | Supprimer l'ancien fichier du dépôt"
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d/docker.list
+    state: absent
+
+# deb822_repository = la nouvelle façon d'ajouter un dépôt (apt_repository va disparaître)
+- name: "Docker | Ajouter le dépôt Docker"
+  ansible.builtin.deb822_repository:
+    name: docker
+    types: deb
+    uris: "https://download.docker.com/linux/{{ ansible_distribution | lower }}"
+    suites: "{{ ansible_distribution_release }}"
+    components: stable
+    architectures: "{{ deb_arch }}"
+    signed_by: /etc/apt/keyrings/docker.asc
     state: present
 
-- name: "Docker | Add repository into sources list"
-  ansible.builtin.apt_repository:
-    repo: "deb [arch={{ arch }}] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
-    state: present
-    filename: docker
-
+# docker-compose-plugin = la commande "docker compose" (la version moderne de docker-compose)
+# python3-docker = ce qu'il faut à Ansible pour piloter Docker (draw.io, n8n, portainer...)
 - name: "Docker | Installation"
   ansible.builtin.apt:
     name:
       - docker-ce
       - docker-ce-cli
       - containerd.io
-    state: latest
+      - docker-buildx-plugin
+      - docker-compose-plugin
+      - python3-docker
+    state: present
     update_cache: true
 
-- name: Add user to docker groups
+- name: "Docker | Démarrer Docker et le lancer au démarrage du PC"
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+# Comme ça ton user peut lancer docker sans sudo (faut se déco/reco pour que ça marche)
+- name: "Docker | Ajouter ton user au groupe docker"
   ansible.builtin.user:
     name: "{{ ansible_user }}"
-    groups: "docker"
+    groups: docker
     append: true
 
-# Docker-Compose setup
-- name: Get latest version of Docker Compose from Github API
-  uri:
-    url: "https://api.github.com/repos/docker/compose/releases/latest"
-    return_content: yes
-  register: url_content
+# Avant on téléchargeait le binaire docker-compose sur GitHub.
+# Maintenant il est fourni par le paquet docker-compose-plugin.
+# On garde quand même la commande "docker-compose" qui renvoie vers "docker compose",
+# comme ça tes vieux scripts marchent toujours.
+- name: "Docker | Commande docker-compose (pour la compatibilité)"
+  ansible.builtin.copy:
+    dest: /usr/local/bin/docker-compose
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      # Petit raccourci : "docker-compose" appelle juste "docker compose"
+      exec docker compose "$@"
 
-- name: Set latest version in docker_compose_version variable
-  set_fact:
-    docker_compose_version: "{{ url_content.json.name }}"
-
-- name: Install Docker Compose (if configured).
-  become: yes
-  get_url:
-    url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-linux-{{ ansible_architecture }}"
-    dest: "/usr/local/bin/docker-compose"
-    mode: 0755
-
-# Add Alias
-## Remove all container : docker ps -aq | xargs docker stop | xargs docker rm
-- name: "Docker | Add Shell aliases"
+# Des raccourcis pour faire le ménage dans Docker
+- name: "Docker | Ajouter les alias"
   become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "~/.aliases"
-    create: yes
-    mode: 0644
+  ansible.builtin.lineinfile:
+    path: "/home/{{ ansible_user }}/.aliases"
+    create: true
+    mode: "0644"
     line: 'alias {{ item.alias }}="{{ item.commandLine }}"'
     regexp: "^alias {{ item.alias }}="
-  with_items:
+  loop:
     - { alias: "docker-remove_all", commandLine: "sudo docker system prune -a" }
     - { alias: "docker-remove_all_containers", commandLine: "sudo docker stop \\$(sudo docker ps -a -q); sudo docker rm \\$(sudo docker ps -a -q)" }
-    - { alias: "docker-remove_all_images", commandLine: "sudo docker rmi \\$(docker images -a -q)" }
+    # avant il manquait un "sudo" dans le $(...), du coup ça plantait
+    - { alias: "docker-remove_all_images", commandLine: "sudo docker rmi \\$(sudo docker images -a -q)" }
     - { alias: "docker-remove_all_volumes", commandLine: "sudo docker volume rm \\$(sudo docker volume ls -q)" }
-    - { alias: "docker-stop_all_containers", commandLine: "sudo docker stop \\$(sudo docker ps -a -q);" }
+    - { alias: "docker-stop_all_containers", commandLine: "sudo docker stop \\$(sudo docker ps -a -q)" }

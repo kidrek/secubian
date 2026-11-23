@@ -1,119 +1,133 @@
-## Retrieve git repository
-- name: "DFIR IRIS | Clone git repos"
-  become_user: "{{ ansible_user }}"
-  git:
-    repo: "{{ item.repo }}"
-    dest: "{{ item.dest }}"
-    accept_hostkey: yes
-    force: yes
-    recursive: yes
-  with_items:
-    - { repo: "https://github.com/dfir-iris/iris-web.git", dest: "{{ DFIR_toolsDir }}/report/iris-web" }
+# =====================================================================
+# DFIR IRIS : la plateforme pour gérer tes enquêtes (cas, preuves, timeline, rapports)
+# Accès : https://127.0.0.1:7443  (identifiant : secubian, mot de passe dans KeePassXC)
+# Les conteneurs sont éteints à la fin pour économiser la RAM :
+# tape "iris-web" pour les lancer quand t'en as besoin.
+# =====================================================================
 
-## Create configuration
-- name: "DFIR IRIS | Create configuration"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/report/iris-web; cp .env.model .env;
+# On prend la dernière VERSION STABLE et pas la branche de dev (qui peut être cassée)
+- name: "DFIR IRIS | Chercher la dernière version stable"
+  ansible.builtin.uri:
+    url: "https://api.github.com/repos/dfir-iris/iris-web/releases/latest"
+    return_content: true
+  register: iris_release
 
-## Set administrator user
-- include_tasks: tasks/keepassXC_generate_password.yml
-
-- name: "DFIR IRIS | Add Entry in keepassXC"
+- name: "DFIR IRIS | Télécharger IRIS"
   become_user: "{{ ansible_user }}"
-  shell: "printf \"%s\n%s\" {{ keepass_db_password }} {{ password }} | keepassxc-cli add --url 'https://127.0.0.1:7443/' -u 'secubian' -p {{ keepass_db_path }} dfir-iris"
-  delegate_to: localhost
-  register: result
-  ignore_errors: False
+  ansible.builtin.git:
+    repo: https://github.com/dfir-iris/iris-web.git
+    dest: "{{ DFIR_toolsDir }}/report/iris-web"
+    version: "{{ iris_release.json.tag_name }}"
+    accept_hostkey: true
+    force: true
+    recursive: true
 
-- name: "DFIR IRIS | Set Administrator username"
+# On crée le .env à partir du modèle, mais seulement s'il existe pas encore.
+# Avant il était écrasé à chaque lancement.
+- name: "DFIR IRIS | Créer la config (.env)"
   become_user: "{{ ansible_user }}"
-  lineinfile:
+  ansible.builtin.copy:
+    src: "{{ DFIR_toolsDir }}/report/iris-web/.env.model"
     dest: "{{ DFIR_toolsDir }}/report/iris-web/.env"
-    create: yes
-    mode: 0644
-    line: 'IRIS_ADM_USERNAME=secubian'
-    regexp: "^IRIS_ADM_USERNAME="
+    remote_src: true
+    force: false
+    mode: "0600"   # il contient des mots de passe : lisible que par toi
 
-- name: "DFIR IRIS | Set Administrator password"
-  become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "{{ DFIR_toolsDir }}/report/iris-web/.env"
-    create: yes
-    mode: 0644
-    line: 'IRIS_ADM_PASSWORD={{ password }}'
-    regexp: "^IRIS_ADM_PASSWORD="
+# Le mot de passe admin : on le reprend dans KeePassXC s'il existe déjà, sinon on le crée
+- name: "DFIR IRIS | Mot de passe admin"
+  ansible.builtin.include_tasks: tasks/keepassXC_get_or_create_password.yml
+  vars:
+    keepass_entry: "dfir-iris"
+    keepass_url: "https://127.0.0.1:7443/"
+    keepass_username: "secubian"
 
-- name: "DFIR IRIS | Set listening port"
+# Identifiant, mot de passe et port de l'interface
+- name: "DFIR IRIS | Régler le .env"
   become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "{{ DFIR_toolsDir }}/report/iris-web/.env"
-    create: yes
-    mode: 0644
-    line: 'INTERFACE_HTTPS_PORT=7443'
-    regexp: "^INTERFACE_HTTPS_PORT="
+  ansible.builtin.lineinfile:
+    path: "{{ DFIR_toolsDir }}/report/iris-web/.env"
+    line: "{{ item.line }}"
+    regexp: "{{ item.regexp }}"
+  loop:
+    - { line: "IRIS_ADM_USERNAME=secubian", regexp: "^IRIS_ADM_USERNAME=" }
+    - { line: "IRIS_ADM_PASSWORD={{ password }}", regexp: "^IRIS_ADM_PASSWORD=" }
+    - { line: "INTERFACE_HTTPS_PORT=7443", regexp: "^INTERFACE_HTTPS_PORT=" }
+  no_log: true
 
-- name: "DFIR IRIS | Remove debug port"
+# On change le port de debug 8000 -> 7000 (8000 est pris par Portainer).
+# Avant c'était "lineinfile" : si la ligne était pas trouvée, il l'ajoutait
+# à la FIN du docker-compose.yml et cassait le fichier. "replace" ajoute jamais rien.
+- name: "DFIR IRIS | Changer le port de debug"
   become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "{{ DFIR_toolsDir }}/report/iris-web/docker-compose.yml"
-    line: '      - "127.0.0.1:7000:8000"'
-    regexp: '(- "127.0.0.1:8000:8000")'
+  ansible.builtin.replace:
+    path: "{{ DFIR_toolsDir }}/report/iris-web/docker-compose.yml"
+    regexp: '"127\.0\.0\.1:8000:8000"'
+    replace: '"127.0.0.1:7000:8000"'
 
-- name: "DFIR IRIS | Build Docker"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: cd {{ DFIR_toolsDir }}/report/iris-web; sudo service docker restart; sudo docker-compose pull; sudo docker-compose build; sudo docker-compose up -d;
+# On télécharge les images et on lance tout.
+# "docker compose" (avec un espace) = la version moderne de docker-compose.
+# Plus besoin de redémarrer Docker comme avant.
+- name: "DFIR IRIS | Télécharger les images"
+  ansible.builtin.command: docker compose pull
+  args:
+    chdir: "{{ DFIR_toolsDir }}/report/iris-web"
+  changed_when: false
 
-- name: "DFIR IRIS | Add aliases"
+- name: "DFIR IRIS | Lancer IRIS"
+  ansible.builtin.command: docker compose up -d
+  args:
+    chdir: "{{ DFIR_toolsDir }}/report/iris-web"
+  register: iris_up
+  changed_when: "'Started' in iris_up.stderr or 'Created' in iris_up.stderr"
+
+- name: "DFIR IRIS | Ajouter l'alias pour lancer IRIS"
   become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "~/.aliases"
-    create: yes
-    mode: 0644
-    line: 'alias iris-web="cd {{ DFIR_toolsDir }}/report/iris-web; sudo docker-compose up -d"'
+  ansible.builtin.lineinfile:
+    path: "/home/{{ ansible_user }}/.aliases"
+    create: true
+    mode: "0644"
+    line: 'alias iris-web="cd {{ DFIR_toolsDir }}/report/iris-web && sudo docker compose up -d; cd -"'
     regexp: "^alias iris-web="
 
-## Then, wait server is up and running to kill it
-- name: "DFIR IRIS | Wait server is up and running"
+- name: "DFIR IRIS | Attendre que ça réponde"
   ansible.builtin.uri:
     url: https://127.0.0.1:7443
     validate_certs: false
-  register: result
-  until: "result.status == 200"
+  register: iris_ready
+  until: iris_ready.status == 200
   retries: 10
   delay: 60
 
-- name: "DFIR IRIS | Stop a container"
-  docker_container:
-    name: "{{ item }}"
-    state: stopped
-    restart_policy: no
-  loop:
-    - "iriswebapp_app"
-    - "iriswebapp_db"
-    - "iriswebapp_nginx"
-    - "iriswebapp_rabbitmq"
-    - "iriswebapp_worker"
+# On éteint IRIS pour économiser la RAM.
+# "docker update --restart=no" = il se relancera pas tout seul au démarrage du PC.
+# (Avant c'était le module docker_container, qui peut vouloir recréer le conteneur et planter)
+- name: "DFIR IRIS | Pas de démarrage automatique"
+  ansible.builtin.command: >-
+    docker update --restart=no
+    iriswebapp_app iriswebapp_db iriswebapp_nginx iriswebapp_rabbitmq iriswebapp_worker
+  changed_when: false
+  failed_when: false
 
-- name: "DFIR IRIS | Create reports folder"
+- name: "DFIR IRIS | Éteindre IRIS"
+  ansible.builtin.command: docker compose stop
+  args:
+    chdir: "{{ DFIR_toolsDir }}/report/iris-web"
+  changed_when: false
+
+- name: "DFIR IRIS | Créer le dossier des modèles de rapport"
   become_user: "{{ ansible_user }}"
-  file:
+  ansible.builtin.file:
     path: "{{ DFIR_toolsDir }}/report/iris-web/reports"
     state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: '0775'
-    
-# Download template
-# https://docs.dfir-iris.org/operations/example_reports/iris_report_template.docx
-# https://docs.dfir-iris.org/operations/example_reports/iris_activity_report_template.docx
-- name: "DFIR IRIS | Download reports templates"
-  ansible.builtin.get_url:
-    url: "{{ item.url }}"
-    dest: "{{ DFIR_toolsDir }}/report/iris-web/reports/{{ item.filename }}"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: '0440'
-  with_items:
-    - { url: "https://docs.dfir-iris.org/operations/example_reports/iris_report_template.docx", filename: "iris_report_template.docx" }
-    - { url: "https://docs.dfir-iris.org/operations/example_reports/iris_activity_report_template.docx", filename: "iris_activity_report_template.docx" }
+    mode: "0775"
 
+# Les modèles de rapport Word fournis par IRIS
+- name: "DFIR IRIS | Télécharger les modèles de rapport"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.get_url:
+    url: "https://docs.dfir-iris.org/operations/example_reports/{{ item }}"
+    dest: "{{ DFIR_toolsDir }}/report/iris-web/reports/{{ item }}"
+    mode: "0440"
+  loop:
+    - iris_report_template.docx
+    - iris_activity_report_template.docx

@@ -1,53 +1,69 @@
-# Visual studio code installation
+# =====================================================================
+# VISUAL STUDIO CODE : l'éditeur de code de Microsoft + ses extensions
+# =====================================================================
 
-- name: "Visual Studio Code | Install apt-transport-https"
-  ansible.builtin.apt:
-    name:
-      - apt-transport-https
-      - ca-certificates
-      - lsb-release
-      - gnupg
-    state: latest
-    update_cache: true
+# Microsoft range ses téléchargements par architecture :
+# "x64" pour un PC classique, "arm64" pour les processeurs ARM
+- name: "VS Code | Trouver l'architecture du PC"
+  ansible.builtin.set_fact:
+    deb_arch: "{{ arch | default('arm64' if ansible_architecture == 'aarch64' else 'amd64') }}"
+    vscode_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'x64' }}"
 
-- name: "Visual Studio Code | Add signing key"
-  ansible.builtin.apt_key:
-    url: "https://packages.microsoft.com/keys/microsoft.asc"
-    state: present
-
-- name: "Visual Studio Code | Add repository into sources list"
+# Avant on ajoutait le dépôt Microsoft avec "apt_key" (méthode qui n'existe plus)
+# et le paquet "code" ajoute AUSSI son propre dépôt en s'installant. Les deux ensemble
+# font planter apt ("Conflicting values set for option Signed-By").
+# Donc on vire notre ancienne ligne et on laisse le paquet gérer son dépôt tout seul.
+- name: "VS Code | Supprimer l'ancienne ligne du dépôt"
   ansible.builtin.apt_repository:
-    repo: "deb [arch={{ arch }}] https://packages.microsoft.com/repos/code stable main"
-    state: present
+    repo: "deb [arch={{ deb_arch }}] https://packages.microsoft.com/repos/code stable main"
     filename: vscode
+    state: absent
 
-- name: "Visual Studio Code | Install package"
-  ansible.builtin.shell: apt update; 
+- name: "VS Code | Déjà installé ?"
+  ansible.builtin.command: dpkg-query -W code
+  register: vscode_installed
+  changed_when: false
+  failed_when: false
 
-- name: "Visual Studio Code | Install package"
+# On télécharge le .deb officiel et on l'installe (seulement la 1re fois).
+# Ensuite les mises à jour arrivent via "apt upgrade", comme les autres paquets.
+- name: "VS Code | Télécharger le paquet officiel"
+  ansible.builtin.get_url:
+    url: "https://update.code.visualstudio.com/latest/linux-deb-{{ vscode_arch }}/stable"
+    dest: /tmp/vscode.deb
+    mode: "0644"
+  when: vscode_installed.rc != 0
+
+- name: "VS Code | Installer"
   ansible.builtin.apt:
-    name:
-      - code
-    state: latest
-    update_cache: true
+    deb: /tmp/vscode.deb
+  when: vscode_installed.rc != 0
 
-- name: "Visual Studio Code | Install Extensions"
+- name: "VS Code | Supprimer le paquet téléchargé"
+  ansible.builtin.file:
+    path: /tmp/vscode.deb
+    state: absent
+
+# Si une extension est déjà là, VS Code dit "already installed" et on compte pas ça comme un changement
+- name: "VS Code | Installer les extensions"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: code --install-extension {{ item.extension }}; 
-  with_items:
-    - { extension: "ms-python.python" }
-    - { extension: "hediet.vscode-drawio" }
-    - { extension: "ms-toolsai.jupyter" }
-    - { extension: "ms-toolsai.jupyter-keymap" }
-    - { extension: "ms-toolsai.jupyter-renderers" }
-    - { extension: "ms-toolsai.vscode-jupyter-cell-tags" }
-    - { extension: "ms-toolsai.vscode-jupyter-slideshow" }
+  ansible.builtin.command: "code --install-extension {{ item }}"
+  loop:
+    - ms-python.python
+    - hediet.vscode-drawio
+    - ms-toolsai.jupyter
+    - ms-toolsai.jupyter-keymap
+    - ms-toolsai.jupyter-renderers
+    - ms-toolsai.vscode-jupyter-cell-tags
+    - ms-toolsai.vscode-jupyter-slideshow
+  register: vscode_ext
+  changed_when: "'successfully installed' in vscode_ext.stdout"
 
-- name: "Visual Studio Code | Install jupyter package"
+# Avant on passait "$HOME" à Ansible, mais il le remplace pas toujours par ton vrai dossier.
+- name: "VS Code | Installer Jupyter pour Python 3.9.18"
   become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
-    name: 
+    name:
       - jupyter
       - pandas
-    virtualenv: "$HOME/.pyenv/versions/3.9.18"
-    virtualenv_command: $HOME/.pyenv/bin/pyenv virtualenv 3.9.18
+    executable: "/home/{{ ansible_user }}/.pyenv/versions/3.9.18/bin/pip"

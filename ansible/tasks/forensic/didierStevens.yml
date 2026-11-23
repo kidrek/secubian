@@ -1,36 +1,44 @@
-- name: "DidierStevensSuite | set PythonVersion"
+# =====================================================================
+# DIDIER STEVENS SUITE : plein de petits scripts pour analyser des PDF,
+# des documents Office, des fichiers zip piégés, etc.
+# =====================================================================
+
+- name: "DidierStevensSuite | Choisir la version de Python"
   ansible.builtin.set_fact:
-    python_version : "3.9.18" 
+    python_version: "3.9.18"
 
-- name: "DidierStevensSuite | Download repository"
+- name: "DidierStevensSuite | Télécharger les scripts"
   become_user: "{{ ansible_user }}"
-  git:
-    repo: "{{ item.repo }}"
-    accept_hostkey: yes
-    dest: "{{ item.dest }}"
-    recursive: yes
+  ansible.builtin.git:
+    repo: https://github.com/DidierStevens/DidierStevensSuite.git
+    dest: "{{ DFIR_toolsDir }}/data_processing/DidierStevensSuite"
+    accept_hostkey: true
+    recursive: true
     force: true
-  with_items:
-    - { repo: "https://github.com/DidierStevens/DidierStevensSuite.git", dest: "{{ DFIR_toolsDir }}/data_processing/DidierStevensSuite" }
 
-- name: "DidierStevensSuite | set executable"
-  ansible.builtin.shell: chmod +x {{ DFIR_toolsDir }}/data_processing/DidierStevensSuite/*.py
-
-- name: "DidierStevensSuite | Add PATH"
+# On rend les scripts lançables directement. Avant ça se faisait en root
+# dans ton dossier, là c'est avec ton user.
+- name: "DidierStevensSuite | Rendre les scripts exécutables"
   become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "~/.env"
-    create: yes
-    mode: 0644
-    line: "export PATH=$PATH:{{ DFIR_toolsDir }}/data_processing/DidierStevensSuite"
-    regexp: "^export PATH=$PATH:{{ DFIR_toolsDir }}/data_processing/DidierStevensSuite"
+  ansible.builtin.shell: "chmod +x {{ DFIR_toolsDir }}/data_processing/DidierStevensSuite/*.py"
+  changed_when: false
 
-- name: "DidierStevensSuite | Install required python modules"
+# On ajoute le dossier au PATH pour pouvoir taper "pdfid.py" de n'importe où.
+# Avant la "regexp" contenait "$PATH" : le "$" veut dire "fin de ligne" en regex,
+# donc ça matchait jamais. Sans regexp, lineinfile vérifie juste si la ligne existe déjà.
+- name: "DidierStevensSuite | Ajouter au PATH"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.lineinfile:
+    path: "/home/{{ ansible_user }}/.env"
+    create: true
+    mode: "0644"
+    line: "export PATH=$PATH:{{ DFIR_toolsDir }}/data_processing/DidierStevensSuite"
+
+# Avant on passait "$HOME" à Ansible, mais il le remplace pas toujours par ton vrai dossier.
+- name: "DidierStevensSuite | Installer les modules Python"
   become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
-    name: 
+    name:
       - pyzipper
       - pycryptodome
-    virtualenv: "$HOME/.pyenv/versions/{{ python_version }}"
-    virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv {{ python_version }}"
-
+    executable: "/home/{{ ansible_user }}/.pyenv/versions/{{ python_version }}/bin/pip"

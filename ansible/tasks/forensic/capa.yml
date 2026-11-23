@@ -1,52 +1,81 @@
-- name: "FLARE CAPA | Retrieve the latest version"
-  uri:
+# =====================================================================
+# CAPA (Mandiant) : regarde un exécutable et te dit ce qu'il sait faire
+# (chiffrer, se connecter au réseau, se cacher...). Utile pour les malwares.
+# =====================================================================
+
+# unzip : il en faut pour décompresser le .zip de capa (sinon "unarchive" plante)
+- name: "CAPA | Installer unzip"
+  ansible.builtin.apt:
+    name: unzip
+    state: present
+
+- name: "CAPA | Chercher la dernière version sur GitHub"
+  ansible.builtin.uri:
     url: "https://api.github.com/repos/mandiant/capa/releases/latest"
     return_content: true
-  register: latest_version
+  register: capa_release
 
-- name: "FLARE CAPA | Download the latest version"
-  loop: "{{ latest_version.json.assets }}"
-  when: "'-linux.zip' in item.name"
-  get_url:
-    url: "{{ item.browser_download_url }}"
-    dest: "/tmp/capa-linux.zip"
+# On garde seulement le fichier qui finit par "-linux.zip"
+- name: "CAPA | Trouver le bon fichier à télécharger"
+  ansible.builtin.set_fact:
+    capa_url: >-
+      {{ capa_release.json.assets
+         | selectattr('name', 'search', '-linux\.zip$')
+         | map(attribute='browser_download_url')
+         | first }}
 
-- name: "FLARE CAPA | Extract binary from archive"
+- name: "CAPA | Télécharger"
+  ansible.builtin.get_url:
+    url: "{{ capa_url }}"
+    dest: /tmp/capa-linux.zip
+    mode: "0644"
+    force: true
+
+# /usr/local/bin = l'endroit prévu pour les programmes qu'on installe à la main
+# (/usr/bin c'est normalement réservé à apt)
+- name: "CAPA | Décompresser"
   ansible.builtin.unarchive:
     src: /tmp/capa-linux.zip
-    dest: /usr/bin/
+    dest: /usr/local/bin/
+    remote_src: true
 
-- name: "FLARE CAPA | Set executable"
-  ansible.builtin.shell: chmod +x /usr/bin/capa
+# "file" fait le chmod +x proprement, pas besoin de shell
+- name: "CAPA | Rendre exécutable"
+  ansible.builtin.file:
+    path: /usr/local/bin/capa
+    mode: "0755"
 
-- name: "FLARE CAPA | Clone git CAPA rules repos"
+- name: "CAPA | Supprimer le zip"
+  ansible.builtin.file:
+    path: /tmp/capa-linux.zip
+    state: absent
+
+# Les règles de détection de capa
+- name: "CAPA | Télécharger les règles"
   become_user: "{{ ansible_user }}"
-  git:
-    repo: "{{ item.repo }}"
-    dest: "{{ item.dest }}"
-    accept_hostkey: yes
-    force: yes
-    recursive: yes
-  with_items:
-    - { repo: "https://github.com/mandiant/capa-rules.git", dest: "{{ DFIR_toolsDir }}/analyse/rules/flare-capa-rules" }
+  ansible.builtin.git:
+    repo: https://github.com/mandiant/capa-rules.git
+    dest: "{{ DFIR_toolsDir }}/analyse/rules/flare-capa-rules"
+    accept_hostkey: true
+    force: true
 
-- name: "FLARE CAPA | Clone git CAPA signatures repos"
+# Les signatures sont dans le dépôt principal de capa.
+# "depth: 1" = on télécharge juste la dernière version, pas tout l'historique (beaucoup plus léger)
+- name: "CAPA | Télécharger les signatures"
   become_user: "{{ ansible_user }}"
-  git:
-    repo: "{{ item.repo }}"
-    dest: "{{ item.dest }}"
-    accept_hostkey: yes
-    force: yes
-    recursive: yes
-  with_items:
-    - { repo: "https://github.com/mandiant/capa.git", dest: "{{ DFIR_toolsDir }}/analyse/rules/flare-capa-signatures" }
+  ansible.builtin.git:
+    repo: https://github.com/mandiant/capa.git
+    dest: "{{ DFIR_toolsDir }}/analyse/rules/flare-capa-signatures"
+    accept_hostkey: true
+    force: true
+    depth: 1
 
-- name: "FLARE CAPA | Add aliases"
+# Comme ça "capa fichier.exe" utilise direct les bonnes règles et signatures
+- name: "CAPA | Ajouter l'alias"
   become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "~/.aliases"
-    create: yes
-    mode: 0644
-    line: 'alias capa="capa --rules {{ DFIR_toolsDir }}/analyse/rules/flare-capa-rules --signatures {{ DFIR_toolsDir }}/analyse/rules/flare-capa-signatures/sigs "'
+  ansible.builtin.lineinfile:
+    path: "/home/{{ ansible_user }}/.aliases"
+    create: true
+    mode: "0644"
+    line: 'alias capa="capa --rules {{ DFIR_toolsDir }}/analyse/rules/flare-capa-rules --signatures {{ DFIR_toolsDir }}/analyse/rules/flare-capa-signatures/sigs"'
     regexp: "^alias capa="
-

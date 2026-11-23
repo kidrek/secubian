@@ -1,11 +1,31 @@
-- name: "Keepass | Install requirements"
-  apt:
-    name: 
-      - keepassxc
+# =====================================================================
+# KEEPASSXC : crée le coffre-fort de mots de passe (la base .kdbx)
+# C'est là que le playbook range les mots de passe qu'il génère (n8n, portainer...)
+# =====================================================================
 
-- name: "Keepass | Create database"
+- name: "Keepass | Installer KeePassXC"
+  ansible.builtin.apt:
+    name: keepassxc
+    state: present
+
+# Au cas où le dossier de la base existe pas encore
+- name: "Keepass | Créer le dossier de la base"
   become_user: "{{ ansible_user }}"
-  shell: "printf \"%s\n%s\" {{ keepass_db_password }} {{ keepass_db_password }} | keepassxc-cli db-create -p {{ keepass_db_path }}"
+  ansible.builtin.file:
+    path: "{{ keepass_db_path | dirname }}"
+    state: directory
   delegate_to: localhost
-  register: result
-  ignore_errors: False
+
+# Modification :
+# "creates" : si la base existe déjà, on la recrée pas (avant ça plantait au 2e lancement)
+# "quote" : si ton mot de passe a des espaces ou des caractères spéciaux, ça casse plus la commande
+# "no_log" : le mot de passe s'affiche plus en clair dans les logs d'Ansible
+- name: "Keepass | Créer la base"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.shell: >-
+    printf '%s\n%s\n' {{ keepass_db_password | quote }} {{ keepass_db_password | quote }}
+    | keepassxc-cli db-create -p {{ keepass_db_path | quote }}
+  args:
+    creates: "{{ keepass_db_path }}"
+  delegate_to: localhost
+  no_log: true

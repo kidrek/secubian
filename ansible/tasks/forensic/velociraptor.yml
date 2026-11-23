@@ -1,62 +1,77 @@
-- name: "Velociraptor - Retrieve the latest version"
-  uri:
+# =====================================================================
+# VELOCIRAPTOR : pour collecter des traces et chasser les menaces sur
+# plein de machines en même temps (via des agents).
+# Accès : https://127.0.0.1:8889  (identifiant : secubian, mot de passe dans KeePassXC)
+# =====================================================================
+
+- name: "Velociraptor | Trouver l'architecture du PC"
+  ansible.builtin.set_fact:
+    deb_arch: "{{ arch | default('arm64' if ansible_architecture == 'aarch64' else 'amd64') }}"
+
+- name: "Velociraptor | Chercher la dernière version sur GitHub"
+  ansible.builtin.uri:
     url: "https://api.github.com/repos/Velocidex/velociraptor/releases/latest"
     return_content: true
   register: velociraptor_release
 
-- name: Prints velociraptor version
+- name: "Velociraptor | Afficher la version"
   ansible.builtin.debug:
-    msg:
-    - "La dernière version de Velociraptor est : {{ velociraptor_release.json.tag_name }}"
+    msg: "La dernière version de Velociraptor est : {{ velociraptor_release.json.tag_name }}"
 
-#- name: "Velociraptor - Download the latest version"
-#  loop: "{{ latest_version.json.assets }}"
-#  when: "'linux-{{ arch }}' in item.name"
-#  get_url:
-#    url: "{{ item.browser_download_url }}"
-#    dest: "/usr/bin/velociraptor"
-
-- name: Build Velociraptor asset name pattern
-  ansible.builtin.set_fact:
-    velociraptor_asset_pattern: "linux-{{ arch }}"
-
-- name: Set Velociraptor download URL (latest)
+# Avant on cherchait juste "linux-amd64" dans le nom : ça pouvait tomber sur
+# "linux-amd64-musl" ou un fichier de signature ".sig". Le "$" = le nom doit FINIR par linux-amd64.
+- name: "Velociraptor | Trouver le bon fichier à télécharger"
   ansible.builtin.set_fact:
     velociraptor_release_url: >-
-      {{
-        velociraptor_release.json.assets
-        | selectattr('name', 'search', velociraptor_asset_pattern)
-        | map(attribute='browser_download_url')
-        | first
-      }}
+      {{ velociraptor_release.json.assets
+         | selectattr('name', 'search', '-linux-' ~ deb_arch ~ '$')
+         | map(attribute='browser_download_url')
+         | first }}
 
-- name: "Velociraptor - Download the latest version"
-  get_url:
+# "mode: 0755" = exécutable direct, plus besoin du chmod en shell
+# (on reste dans /usr/bin : /usr/local/bin est utilisé par le paquet du serveur)
+- name: "Velociraptor | Télécharger"
+  ansible.builtin.get_url:
     url: "{{ velociraptor_release_url }}"
-    dest: "/usr/bin/velociraptor"
+    dest: /usr/bin/velociraptor
+    mode: "0755"
+    force: true
 
-- name: "Velociraptor - Set executable"
-  ansible.builtin.shell: chmod +x /usr/bin/velociraptor
+# La config contient les clés de chiffrement du serveur.
+# Avant elle était RE-générée à chaque lancement : tous les agents déjà installés
+# sur les machines perdaient la connexion. "creates" = seulement la première fois.
+- name: "Velociraptor | Générer la config (une seule fois)"
+  ansible.builtin.shell: velociraptor config generate --no-interactive > /opt/server.config.yaml
+  args:
+    creates: /opt/server.config.yaml
 
-## Generate config
-- name: "Velociraptor - Generate config"
-  ansible.builtin.shell: cd /opt/; velociraptor config generate --no-interactive | tee server.config.yaml
+- name: "Velociraptor | Protéger la config (elle contient des clés secrètes)"
+  ansible.builtin.file:
+    path: /opt/server.config.yaml
+    mode: "0600"
 
-## Create service
-- name: "Velociraptor - Create service"
-  ansible.builtin.shell: cd /opt/; velociraptor --config server.config.yaml debian server; dpkg -i velociraptor-server-*.deb
-  ignore_errors: True
+# On fabrique le paquet .deb du serveur et on l'installe (ça crée le service).
+# Une seule fois : quand /etc/velociraptor/server.config.yaml existe, c'est fait.
+- name: "Velociraptor | Créer et installer le service"
+  ansible.builtin.shell: >-
+    velociraptor --config /opt/server.config.yaml debian server
+    && dpkg -i velociraptor-server-*.deb
+  args:
+    chdir: /opt
+    creates: /etc/velociraptor/server.config.yaml
+  register: velociraptor_install
 
-## Create user
-- include_tasks: tasks/keepassXC_generate_password.yml
+- name: "Velociraptor | Mot de passe"
+  ansible.builtin.include_tasks: tasks/keepassXC_get_or_create_password.yml
+  vars:
+    keepass_entry: "velociraptor"
+    keepass_url: "https://127.0.0.1:8889"
+    keepass_username: "secubian"
 
-- name: "Velociraptor | Add Entry in keepassXC"
-  become_user: "{{ ansible_user }}"
-  shell: "printf \"%s\n%s\" {{ keepass_db_password }} {{ password }} | keepassxc-cli add --url 'https://127.0.0.1:8889' -u 'secubian' -p {{ keepass_db_path }} velociraptor"
-  delegate_to: localhost
-  register: result
-  ignore_errors: False
-
-- name: "Velociraptor - Create user"
-  ansible.builtin.shell: "sudo -u velociraptor velociraptor --config /etc/velociraptor/server.config.yaml  user add secubian --role=administrator {{ password }}"
-
+# On crée le compte admin seulement à l'installation ou si le mot de passe vient d'être créé
+- name: "Velociraptor | Créer le compte admin"
+  ansible.builtin.command: >-
+    sudo -u velociraptor velociraptor --config /etc/velociraptor/server.config.yaml
+    user add secubian --role=administrator {{ password | quote }}
+  when: velociraptor_install.changed or (keepass_entry_is_new | bool)
+  no_log: true

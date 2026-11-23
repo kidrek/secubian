@@ -1,7 +1,25 @@
-- name: "MVT - Mobile Verification Toolkit | Setup"
+# =====================================================================
+# MVT (Mobile Verification Toolkit) : cherche des logiciels espions
+# (genre Pegasus) sur les sauvegardes de téléphones iPhone et Android.
+# =====================================================================
+
+# Les versions récentes de MVT demandent Python 3.10 ou plus : avec le 3.9.18 de pyenv
+# pip installait une vieille version (ou rien). On lui fait un environnement à part,
+# avec le Python d'Ubuntu (assez récent), dans ~/.venvs/mvt.
+# Le module pip crée l'environnement tout seul s'il existe pas.
+- name: "MVT | Installer MVT dans son propre environnement Python"
   become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
-    name: 
-      - mvt
-    virtualenv: "$HOME/.pyenv/versions/3.9.18"
-    virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv 3.9.18"
+    name: mvt
+    state: latest
+    virtualenv: "/home/{{ ansible_user }}/.venvs/mvt"
+    virtualenv_command: python3 -m venv
+
+# Comme ça les commandes "mvt-ios" et "mvt-android" marchent de n'importe où
+- name: "MVT | Ajouter MVT au PATH"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.lineinfile:
+    path: "/home/{{ ansible_user }}/.env"
+    create: true
+    mode: "0644"
+    line: "export PATH=$PATH:/home/{{ ansible_user }}/.venvs/mvt/bin"

@@ -1,38 +1,47 @@
-- name: "ZSH | Install package"
-  apt:
-    name: 
+# =====================================================================
+# ZSH : un terminal plus sympa que bash, avec Oh My Zsh par-dessus
+# =====================================================================
+
+- name: "ZSH | Installer zsh"
+  ansible.builtin.apt:
+    name:
       - zsh
+      - git
+      - curl
     state: present
 
-- name: "ZSH | Download and install ohmyzsh package"
+# "creates" : si Oh My Zsh est déjà là, on le réinstalle pas.
+# Avant ça plantait au 2e lancement et le "ignore_errors" cachait l'erreur.
+- name: "ZSH | Installer Oh My Zsh"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: "{{ item.commandLine }}"
-  with_items:
-    - { commandLine: "sh -c \"$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\" \"\" --unattended" }
-    - { commandLine: "sed -i 's/ZSH_THEME=\"robbyrussell\"/ZSH_THEME=\"af-magic\"/g' ~/.zshrc" }
-  ignore_errors: true
+  ansible.builtin.shell: sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+  args:
+    creates: "/home/{{ ansible_user }}/.oh-my-zsh"
 
-- name: "ZSH | Enable zsh"
+# On change le thème (robbyrussell -> af-magic)
+- name: "ZSH | Choisir le thème af-magic"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: "{{ item.commandLine }}"
-  with_items:
-    - { commandLine: "sudo chsh -s $(which zsh) $(whoami)" }
-  ignore_errors: true
+  ansible.builtin.replace:
+    path: "/home/{{ ansible_user }}/.zshrc"
+    regexp: '^ZSH_THEME=.*$'
+    replace: 'ZSH_THEME="af-magic"'
 
-- name: "Zsh | Add aliases"
+# zsh devient ton terminal par défaut. Le module "user" fait ça proprement,
+# plus besoin de "sudo chsh" dans un shell.
+- name: "ZSH | Mettre zsh par défaut"
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    shell: /usr/bin/zsh
+
+# zsh va lire tes alias (~/.aliases) et tes variables (~/.env) à chaque ouverture de terminal
+- name: "ZSH | Charger ~/.aliases et ~/.env"
   become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "~/.zshrc"
-    create: yes
-    mode: 0644
-    line: "if [ -f ~/.aliases ]; then . ~/.aliases; fi"
+  ansible.builtin.lineinfile:
+    path: "/home/{{ ansible_user }}/.zshrc"
+    create: true
+    mode: "0644"
+    line: "{{ item }}"
     insertafter: EOF
-
-- name: "Zsh | Add .env"
-  become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "~/.zshrc"
-    create: yes
-    mode: 0644
-    line: "if [ -f ~/.env ]; then . ~/.env; fi"
-    insertafter: EOF
+  loop:
+    - "if [ -f ~/.aliases ]; then . ~/.aliases; fi"
+    - "if [ -f ~/.env ]; then . ~/.env; fi"

@@ -1,230 +1,251 @@
-- name: Gather the package facts
+# =====================================================================
+# GNOME : installe le bureau et le règle aux petits oignons
+# Les réglages "dconf" = les options de GNOME (fond d'écran, dock, thème...).
+# Ils sont propres à ton user, c'est pour ça qu'il y a "become_user" partout.
+# =====================================================================
+
+- name: "Gnome | Récupérer la liste des paquets installés"
   ansible.builtin.package_facts:
     manager: auto
 
-- name: Install Gnome desktop
-  apt:
-    name: 
-      - task-gnome-desktop
+# Les noms des paquets et des extensions changent entre Debian et Ubuntu,
+# donc on prépare les bons noms au début, une bonne fois pour toutes.
+- name: "Gnome | Choisir les bons noms selon la distrib"
+  ansible.builtin.set_fact:
+    gnome_desktop_packages: "{{ ['task-gnome-desktop', 'gnome-shell-extension-dashtodock'] if ansible_distribution == 'Debian' else ['ubuntu-desktop-minimal'] }}"
+    gnome_dock_uuid: "{{ 'dash-to-dock@micxgx.gmail.com' if ansible_distribution == 'Debian' else 'ubuntu-dock@ubuntu.com' }}"
+    gnome_firefox_desktop: "{{ 'firefox-esr.desktop' if ansible_distribution == 'Debian' else 'firefox_firefox.desktop' }}"
+    gnome_editor_desktop: "{{ 'org.gnome.gedit.desktop' if ansible_distribution == 'Debian' else 'org.gnome.TextEditor.desktop' }}"
+
+# dconf-cli + python3-psutil : obligatoires pour que les tâches "dconf" marchent
+# gnome-shell-extensions : le pack d'extensions officielles (apps-menu, places-menu...)
+- name: "Gnome | Installer le bureau GNOME"
+  ansible.builtin.apt:
+    name: "{{ gnome_desktop_packages + ['gnome-shell-extensions', 'dconf-cli', 'python3-psutil', 'git'] }}"
     state: present
   register: gnomeStatus
 
-- name: Install Gnome desktop
-  apt:
-    name: 
-      - gnome-shell-extension-dashtodock
-    state: present
-  when: ansible_distribution == 'Debian'
-
-- name: Start gnome display manager service
+- name: "Gnome | Démarrer l'écran de connexion (gdm)"
   ansible.builtin.service:
     name: gdm
     state: started
-    enabled: yes
+    enabled: true
 
-- name: Start dbus service
+# dbus est un service "static" : on peut pas l'activer, juste vérifier qu'il tourne
+- name: "Gnome | Démarrer dbus"
   ansible.builtin.service:
     name: dbus
     state: started
-    enabled: yes
 
-- name: Gnome - Download bottompanel extension
+# ---------------------------------------------------------------------
+# Extension "bottompanel"
+# Avant on faisait "rm -rf" de TOUTES tes extensions perso pour la poser. Plus maintenant.
+# Attention : c'est une vieille extension, elle risque de pas se charger sur un GNOME récent.
+# Si elle marche pas, c'est pas grave, le reste du playbook continue.
+# ---------------------------------------------------------------------
+- name: "Gnome | Télécharger l'extension bottompanel"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: rm -rf ~/.local/share/gnome-shell/extensions/; git clone https://github.com/Thoma5/gnome-shell-extension-bottompanel.git; mv gnome-shell-extension-bottompanel ~/.local/share/gnome-shell/extensions/
+  ansible.builtin.git:
+    repo: https://github.com/Thoma5/gnome-shell-extension-bottompanel.git
+    dest: /tmp/bottompanel
+    force: true
   ignore_errors: true
 
-- name: Enable gnome shell extensions
+- name: "Gnome | Regarder comment est rangée l'extension"
+  ansible.builtin.stat:
+    path: /tmp/bottompanel/bottompanel@tmoer93
+  register: bottompanel_subdir
+
+# GNOME veut que le dossier de l'extension porte son identifiant exact : bottompanel@tmoer93
+- name: "Gnome | Installer l'extension bottompanel"
   become_user: "{{ ansible_user }}"
-  dconf:
+  ansible.builtin.copy:
+    src: "{{ '/tmp/bottompanel/bottompanel@tmoer93/' if bottompanel_subdir.stat.exists else '/tmp/bottompanel/' }}"
+    dest: "/home/{{ ansible_user }}/.local/share/gnome-shell/extensions/bottompanel@tmoer93/"
+    remote_src: true
+  ignore_errors: true
+
+- name: "Gnome | Nettoyer le téléchargement"
+  ansible.builtin.file:
+    path: /tmp/bottompanel
+    state: absent
+
+# ---------------------------------------------------------------------
+# Activer les extensions
+# "gnome-shell-extension-tool" n'existe plus depuis des années, ça plantait.
+# On active tout via dconf, ça marche même si t'es pas connecté au bureau.
+# ---------------------------------------------------------------------
+- name: "Gnome | Autoriser les extensions perso"
+  become_user: "{{ ansible_user }}"
+  community.general.dconf:
+    key: "/org/gnome/shell/disable-user-extensions"
+    value: "false"
+
+- name: "Gnome | Activer les extensions"
+  become_user: "{{ ansible_user }}"
+  community.general.dconf:
     key: "/org/gnome/shell/enabled-extensions"
-    value: "['dash-to-dock@micxgx.gmail.com', 'desktop-icons@csoriano', 'places-menu@gnome-shell-extensions.gcampax.github.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'workspace-indicator@gnome-shell-extensions.gcampax.github.com', 'dash-to-panel@jderose9.github.com', 'apps-menu@gnome-shell-extensions.gcampax.github.com', 'auto-move-windows@gnome-shell-extensions.gcampax.github.com', 'bottompanel@tmoer93']"
+    value: "['{{ gnome_dock_uuid }}', 'apps-menu@gnome-shell-extensions.gcampax.github.com', 'places-menu@gnome-shell-extensions.gcampax.github.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'workspace-indicator@gnome-shell-extensions.gcampax.github.com', 'auto-move-windows@gnome-shell-extensions.gcampax.github.com', 'bottompanel@tmoer93']"
 
-- name: Gnome - Copy wallpaper file
-  copy: src=../files/secubian_wallpaper.png dest=/home/{{ ansible_user }}/.wallpaper_secubian.png owner="{{ ansible_user }}" group="{{ ansible_user }}" mode=600
+# ---------------------------------------------------------------------
+# Fond d'écran
+# ---------------------------------------------------------------------
+- name: "Gnome | Copier le fond d'écran"
+  ansible.builtin.copy:
+    src: ../files/secubian_wallpaper.png
+    dest: "/home/{{ ansible_user }}/.wallpaper_secubian.png"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
 
-- name: Gnome - Set Desktop Wallpaper
+# picture-uri-dark = le fond quand t'es en mode sombre (sinon GNOME récent l'ignore)
+# Le fond de l'écran de verrouillage c'est "screensaver", pas "lockscreen" (cette clé existe pas)
+- name: "Gnome | Mettre le fond d'écran partout"
   become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/desktop/background/picture-uri" value="'file:///home/{{ ansible_user }}/.wallpaper_secubian.png'"
+  community.general.dconf:
+    key: "{{ item }}"
+    value: "'file:///home/{{ ansible_user }}/.wallpaper_secubian.png'"
+  loop:
+    - /org/gnome/desktop/background/picture-uri
+    - /org/gnome/desktop/background/picture-uri-dark
+    - /org/gnome/desktop/screensaver/picture-uri
 
-- name: Gnome - Set Lockscreen Wallpaper
+# ---------------------------------------------------------------------
+# Réglages de base du bureau (avant c'était une tâche par réglage, là c'est groupé)
+# ---------------------------------------------------------------------
+- name: "Gnome | Réglages du bureau"
   become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/desktop/lockscreen/picture-uri" value="'file:///home/{{ ansible_user }}/.wallpaper_secubian.png'"
+  community.general.dconf:
+    key: "{{ item.key }}"
+    value: "{{ item.value }}"
+  loop:
+    # boutons réduire / agrandir / fermer sur les fenêtres
+    - { key: "/org/gnome/desktop/wm/preferences/button-layout", value: "'appmenu:minimize,maximize,close'" }
+    # polices
+    - { key: "/org/gnome/desktop/interface/font-name", value: "'Cantarell 10'" }
+    - { key: "/org/gnome/desktop/interface/monospace-font-name", value: "'Monospace 10'" }
+    # pas d'animations, c'est plus rapide
+    - { key: "/org/gnome/desktop/interface/enable-animations", value: "false" }
+    # le PC se met jamais en veille (secteur ou batterie)
+    - { key: "/org/gnome/settings-daemon/plugins/power/sleep-inactive-ac-type", value: "'nothing'" }
+    - { key: "/org/gnome/settings-daemon/plugins/power/sleep-inactive-battery-type", value: "'nothing'" }
+    - { key: "/org/gnome/settings-daemon/plugins/power/idle-dim", value: "false" }
+    - { key: "/org/gnome/desktop/session/idle-delay", value: "uint32 0" }
+    # pas de verrouillage auto. Pour un PC de sécu c'est pas top, à toi de voir si tu le gardes
+    - { key: "/org/gnome/desktop/screensaver/lock-enabled", value: "false" }
+    # tap-to-click sur le pavé tactile
+    - { key: "/org/gnome/desktop/peripherals/touchpad/tap-to-click", value: "true" }
 
-- name: Gnome - Enable maximize,minimize button on window
+# ---------------------------------------------------------------------
+# Applis favorites dans le dock
+# Firefox et l'éditeur de texte n'ont pas le même nom sur Debian et Ubuntu
+# ---------------------------------------------------------------------
+- name: "Gnome | Applis favorites du dock"
   become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/desktop/wm/preferences/button-layout" value="'appmenu:minimize,maximize,close'"
+  community.general.dconf:
+    key: "/org/gnome/shell/favorite-apps"
+    value: "['{{ gnome_firefox_desktop }}', 'org.gnome.Evolution.desktop', 'terminator.desktop', 'code.desktop', '{{ gnome_editor_desktop }}', 'org.keepassxc.KeePassXC.desktop', 'zulucrypt-gui.desktop', 'org.remmina.Remmina.desktop', 'sqlitebrowser.desktop']"
 
-- name: Gnome - Set list view in window
+# ---------------------------------------------------------------------
+# Thème des fenêtres : Vimix (sombre, compact, bleu)
+# ---------------------------------------------------------------------
+- name: "Gnome | Télécharger le thème Vimix"
   become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/nautilus/preferences/default-folder-viewer" value="'list-view'"
-
-- name: Gnome - Set default Gnome font 
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/desktop/interface/font-name" value="'Cantarell 10'"
-
-- name: Gnome - Set font size
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/desktop/interface/monospace-font-name" value="'Monospace 10'"
-
-- name: Gnome - disable sleep when on AC power
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/settings-daemon/plugins/power/sleep-inactive-ac-type" value="'nothing'"
-
-- name: Gnome - disable sleep when on Battery power
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/settings-daemon/plugins/power/sleep-inactive-battery-type" value="'nothing'"
-
-- name: Gnome - disable screen sleep off
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/settings-daemon/plugins/power/idle-dim" value="false"
-
-- name: Gnome - disable session idle
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/desktop/session/idle-delay" value="uint32 0"
-
-- name: Gnome - disable auto screen lock
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/desktop/screensaver/lock-enabled" value="false"
-
-- name: Gnome - Disabling Animations
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/desktop/interface/enable-animations" value="false"
-
-- name: Enable Gnome Shell extension - apps-menu@gnome-shell-extensions.gcampax.github.com
-  become_user: "{{ ansible_user }}"
-  command: gnome-shell-extension-tool --enable-extension apps-menu@gnome-shell-extensions.gcampax.github.com
-
-- name: Enable Gnome Shell extension - auto-move-windows@gnome-shell-extensions.gcampax.github.com
-  become_user: "{{ ansible_user }}"
-  command: gnome-shell-extension-tool --enable-extension auto-move-windows@gnome-shell-extensions.gcampax.github.com
-
-- name: Enable Gnome Shell extension - caffeine@patapon.info
-  become_user: "{{ ansible_user }}"
-  command: gnome-shell-extension-tool --enable-extension caffeine@patapon.info
-
-- name: Enable Gnome Shell extension - desktop-icons@csoriano
-  become_user: "{{ ansible_user }}"
-  command: gnome-shell-extension-tool --enable-extension desktop-icons@csoriano
-
-- name: Enable Gnome Shell extension - places-menu@gnome-shell-extensions.gcampax.github.com
-  become_user: "{{ ansible_user }}"
-  command: gnome-shell-extension-tool --enable-extension places-menu@gnome-shell-extensions.gcampax.github.com
-
-- name: Enable Gnome Shell extension - user-theme@gnome-shell-extensions.gcampax.github.com
-  become_user: "{{ ansible_user }}"
-  command: gnome-shell-extension-tool --enable-extension user-theme@gnome-shell-extensions.gcampax.github.com
-
-- name: Enable Gnome Shell extension - workspace-indicator@gnome-shell-extensions.gcampax.github.com
-  become_user: "{{ ansible_user }}"
-  command: gnome-shell-extension-tool --enable-extension workspace-indicator@gnome-shell-extensions.gcampax.github.com
-
-#- name: Enable Gnome Shell extension - dash-to-panel@jderose9.github.com
-#  become_user: "{{ ansible_user }}"
-#  command: gnome-shell-extension-tool --enable-extension dash-to-panel@jderose9.github.com
-
-#- name: Gnome - Configure dash-to-panel
-#  become_user: "{{ ansible_user }}"
-#  dconf: key="/org/gnome/shell/extensions/dash-to-panel/panel-size" value="38"
-
-#- name: Gnome - Configure dash-to-panel - leftbox font size
-#  become_user: "{{ ansible_user }}"
-#  dconf: key="/org/gnome/shell/extensions/dash-to-panel/leftbox-size" value="13"
-
-#- name: Gnome - Configure dash-to-panel
-#  become_user: "{{ ansible_user }}"
-#  dconf: key="/org/gnome/shell/extensions/dash-to-panel/dot-style-focused" value="'DOTS'"
-
-#- name: Gnome - Configure dash-to-panel
-#  become_user: "{{ ansible_user }}"
-#  dconf: key="/org/gnome/shell/extensions/dash-to-panel/dot-style-unfocused" value="'DOTS'"
-
-- name: Gnome - Set/Remove favorites apps from Dash-panel
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/shell/favorite-apps" value="['firefox-esr.desktop','org.gnome.Evolution.desktop','terminator.desktop','code.desktop','gedit.desktop','org.keepassxc.KeePassXC.desktop','zulucrypt-gui.desktop','org.remmina.Remmina.desktop','sqlitebrowser.desktop']"
-
-- name: Gnome Application Theme vimix-gtk-themes - Clone a github repository
-  become_user: "{{ ansible_user }}"
-  git:
+  ansible.builtin.git:
     repo: https://github.com/vinceliuice/vimix-gtk-themes.git
     dest: /tmp/vimix-gtk-themes
-    clone: yes
-    update: yes
+    force: true
 
-- name: Gnome Application Theme vimix-gtk-themes - Installation
+- name: "Gnome | Installer le thème Vimix"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: chmod +x /tmp/vimix-gtk-themes/install.sh; /tmp/vimix-gtk-themes/install.sh -c dark -t doder -s compact; rm -rf /tmp/vimix-gtk-themes;
+  ansible.builtin.command: ./install.sh -c dark -t doder -s compact
+  args:
+    chdir: /tmp/vimix-gtk-themes
 
-- name: Gnome Application Theme - Apply vimix-gtk-themes
+- name: "Gnome | Nettoyer le téléchargement du thème"
+  ansible.builtin.file:
+    path: /tmp/vimix-gtk-themes
+    state: absent
+
+# Le nom exact du dossier créé peut changer selon la version du thème
+# (majuscule ou pas), donc on va le chercher au lieu de deviner.
+- name: "Gnome | Trouver le nom exact du thème installé"
+  ansible.builtin.find:
+    paths: "/home/{{ ansible_user }}/.themes"
+    patterns: "[Vv]imix-dark-compact-doder"
+    file_type: directory
+  register: vimix_found
+
+- name: "Gnome | Retenir le nom du thème"
+  ansible.builtin.set_fact:
+    vimix_theme_name: "{{ (vimix_found.files | first).path | basename if vimix_found.files | length > 0 else 'Vimix-dark-compact-doder' }}"
+
+- name: "Gnome | Appliquer le thème Vimix"
   become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/desktop/interface/gtk-theme" value="'Vimix-dark-compact-doder'"
+  community.general.dconf:
+    key: "{{ item }}"
+    value: "'{{ vimix_theme_name }}'"
+  loop:
+    - /org/gnome/desktop/interface/gtk-theme
+    - /org/gnome/shell/extensions/user-theme/name
 
-- name: Gnome Application Theme - Apply vimix-gtk-themes
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/shell/extensions/user-theme/name" value="'Vimix-dark-compact-doder'"
-
-- name: Gnome Icon Theme flat-remix-icons - Transfert
-  become: true
-  copy: 
+# ---------------------------------------------------------------------
+# Icônes : Flat Remix
+# "unarchive" envoie l'archive ET la décompresse d'un coup.
+# "creates" = si le dossier existe déjà, on refait pas le boulot.
+# ---------------------------------------------------------------------
+- name: "Gnome | Installer les icônes Flat Remix"
+  ansible.builtin.unarchive:
     src: ../files/theme-icons/Flat-Remix-Blue-Dark.tar.gz
     dest: /usr/share/icons/
+    creates: /usr/share/icons/Flat-Remix-Blue-Dark
 
-- name: Gnome Icon Theme flat-remix-icons - Installation
-  ansible.builtin.shell: tar xvzf Flat-Remix-Blue-Dark.tar.gz
-  args:
-    chdir: /usr/share/icons/
-
-- name: Gnome Icon Theme - flat-remix-icons
+- name: "Gnome | Appliquer les icônes Flat Remix"
   become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/desktop/interface/icon-theme" value="'Flat-Remix-Blue-Dark'"
+  community.general.dconf:
+    key: "/org/gnome/desktop/interface/icon-theme"
+    value: "'Flat-Remix-Blue-Dark'"
 
-- name: Gnome - Disable automount
+# ---------------------------------------------------------------------
+# Nautilus (l'explorateur de fichiers)
+# ---------------------------------------------------------------------
+- name: "Gnome | Réglages de Nautilus"
   become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/desktop/media-handling/automount" value="false"
+  community.general.dconf:
+    key: "{{ item.key }}"
+    value: "{{ item.value }}"
+  loop:
+    - { key: "/org/gnome/nautilus/preferences/default-folder-viewer", value: "'list-view'" }
+    - { key: "/org/gnome/nautilus/preferences/sort-directories-first", value: "true" }
+    - { key: "/org/gnome/nautilus/preferences/default-sort-order", value: "'type'" }
+    - { key: "/org/gnome/nautilus/list-view/default-visible-columns", value: "['name', 'size', 'type', 'date_modified', 'permissions', 'owner', 'group']" }
 
-- name: Gnome - Disable automount-open
+# ---------------------------------------------------------------------
+# GEdit : on enlève le surlignage de la ligne courante
+# Avant, si le fichier existait pas, Ansible créait un fichier cassé ("create: yes").
+# Là on modifie seulement s'il existe (sur Ubuntu récent, gedit est souvent pas installé).
+# ---------------------------------------------------------------------
+- name: "GEdit | Le fichier du thème tango existe ?"
+  ansible.builtin.stat:
+    path: /usr/share/gtksourceview-4/styles/tango.xml
+  register: gedit_tango
+
+- name: "GEdit | Enlever le surlignage de la ligne courante"
+  ansible.builtin.replace:
+    path: /usr/share/gtksourceview-4/styles/tango.xml
+    regexp: '^(\s*)<style name="(current-line|current-line-number)"(\s+)background="aluminium1"/>'
+    replace: '\1<!--<style name="\2"\3background="aluminium1"/>-->'
+  when: gedit_tango.stat.exists
+
+# ---------------------------------------------------------------------
+# Le dock (même réglages pour dash-to-dock sur Debian et le dock d'Ubuntu)
+# ---------------------------------------------------------------------
+- name: "Gnome | Réglages du dock"
   become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/desktop/media-handling/automount-open" value="false"
-
-- name: Gnome - Enable mouse tap-to-click
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/desktop/peripherals/touchpad/tap-to-click" value="true"
-
-- name: Gnome - Change default view in nautilus
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/nautilus/preferences/default-folder-viewer" value="'list-view'"
-
-- name: Gnome - Sort Directories first
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/nautilus/preferences/sort-directories-first" value="true"
-
-- name: Gnome - Set default view columns in nautilus
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/nautilus/list-view/default-visible-columns" value="['name', 'size', 'type', 'date_modified', 'permissions', 'owner', 'group']"
-
-- name: Gnome - Change sort in nautilus
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/nautilus/preferences/default-sort-order" value="'type'"
-
-- name: GEdit - Change highlight current line theme
-  lineinfile:
-    dest: "/usr/share/gtksourceview-4/styles/tango.xml"
-    create: yes
-    mode: 0644
-    line: '  <!--<style name="current-line"                background="aluminium1"/>-->'
-    regexp: '^  <style name="current-line"                background="aluminium1"/>'
-
-- name: GEdit - Change highlight current line number theme
-  lineinfile:
-    dest: "/usr/share/gtksourceview-4/styles/tango.xml"
-    create: yes
-    mode: 0644
-    line: '  <!--<style name="current-line-number"         background="aluminium1"/>-->'
-    regexp: '^  <style name="current-line-number"         background="aluminium1"/>'
-    
-- name: Gnome - Set dock-position
-  become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/shell/extensions/dash-to-dock/{{ item.key }}" value="{{ item.value }}"
-  with_items:
+  community.general.dconf:
+    key: "/org/gnome/shell/extensions/dash-to-dock/{{ item.key }}"
+    value: "{{ item.value }}"
+  loop:
     - { key: "animate-show-apps", value: "false" }
     - { key: "dash-max-icon-size", value: "25" }
     - { key: "dock-position", value: "'LEFT'" }
@@ -235,10 +256,15 @@
     - { key: "show-apps-at-top", value: "true" }
     - { key: "show-windows-preview", value: "false" }
 
-- name: Gnome - Set Privacy
+# ---------------------------------------------------------------------
+# Vie privée : caméra et micro coupés, pas d'historique, pas de télémétrie
+# ---------------------------------------------------------------------
+- name: "Gnome | Réglages vie privée"
   become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/desktop/privacy/{{ item.key }}" value="{{ item.value }}"
-  with_items:
+  community.general.dconf:
+    key: "/org/gnome/desktop/privacy/{{ item.key }}"
+    value: "{{ item.value }}"
+  loop:
     - { key: "disable-camera", value: "true" }
     - { key: "disable-microphone", value: "true" }
     - { key: "hide-identity", value: "true" }
@@ -248,24 +274,31 @@
     - { key: "remember-app-usage", value: "false" }
     - { key: "send-software-usage-stats", value: "false" }
 
-- name: Gnome - Set Security
+# Une clé USB branchée ne s'ouvre pas toute seule (super important en analyse :
+# une clé vérolée peut lancer des trucs à l'ouverture)
+- name: "Gnome | Pas de montage auto des clés USB"
   become_user: "{{ ansible_user }}"
-  dconf: key="/org/gnome/desktop/media-handling/{{ item.key }}" value="{{ item.value }}"
-  with_items:
-    - { key: "automount", value: "false" }
-    - { key: "automount-open", value: "false" }
+  community.general.dconf:
+    key: "/org/gnome/desktop/media-handling/{{ item }}"
+    value: "false"
+  loop:
+    - automount
+    - automount-open
 
-- name: Gnome - Add directories bookmarks
+# ---------------------------------------------------------------------
+# Favoris dans Nautilus (la barre de gauche)
+# Avant le format était faux ("file:////" + chemin = 5 slashs) et y'avait
+# un espace en trop après toolsDir. Le bon format c'est file:///home/...
+# ---------------------------------------------------------------------
+- name: "Gnome | Ajouter les dossiers en favoris"
   become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "~/.config/gtk-3.0/bookmarks"
-    create: yes
-    mode: 0644
-    line: "file:////{{ item.path }}"
-    regexp: "^file:////{{ item.path }}"
-  with_items:
-    - { path: "{{ casesDir }}" }
-    - { path: "{{ documentationDir }}" }
-    - { path: "{{ playbooksDir }}" }
-    - { path: "{{ toolsDir }} "}
-
+  ansible.builtin.lineinfile:
+    path: "/home/{{ ansible_user }}/.config/gtk-3.0/bookmarks"
+    create: true
+    mode: "0644"
+    line: "file://{{ item }}"
+  loop:
+    - "{{ casesDir }}"
+    - "{{ documentationDir }}"
+    - "{{ playbooksDir }}"
+    - "{{ toolsDir }}"

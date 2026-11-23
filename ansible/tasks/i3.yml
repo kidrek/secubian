@@ -1,13 +1,32 @@
-- name: "i3 | Install"
-  apt:
-    name: 
-      - xorg 
-      - lightdm 
-      - lightdm-gtk-greeter 
-      - i3-wm 
-      - i3status 
-      - i3blocks 
-      - dmenu 
+# =====================================================================
+# i3 : un bureau ultra léger qui range les fenêtres en tuiles
+# lightdm n'est installé que si y'a pas déjà GDM.
+# =====================================================================
+
+- name: "i3 | Regarder si GDM est déjà installé"
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: "i3 | Retenir si on a besoin de lightdm"
+  ansible.builtin.set_fact:
+    i3_needs_lightdm: "{{ 'gdm3' not in ansible_facts.packages and 'gdm' not in ansible_facts.packages }}"
+
+- name: "i3 | Installer lightdm (seulement s'il n'y a pas GDM)"
+  ansible.builtin.apt:
+    name:
+      - lightdm
+      - lightdm-gtk-greeter
+    state: present
+  when: i3_needs_lightdm | bool
+
+- name: "i3 | Installation"
+  ansible.builtin.apt:
+    name:
+      - xorg
+      - i3-wm
+      - i3status
+      - i3blocks
+      - dmenu
       - terminator
       - thunar
       - feh
@@ -16,31 +35,37 @@
       - fonts-font-awesome
     state: present
 
-- name: "i3 | Enable lightdm"
+# Plus besoin de ignore_errors : on active lightdm seulement s'il n'y a pas GDM
+- name: "i3 | Activer lightdm au démarrage"
   ansible.builtin.service:
     name: lightdm
-    enabled: yes
-  ignore_errors: true
+    enabled: true
+  when: i3_needs_lightdm | bool
 
-- name: "i3 | Remove i3lock package"
+# i3lock c'est l'écran de verrouillage de i3, on n'en veut pas ici
+- name: "i3 | Désinstaller i3lock"
   ansible.builtin.apt:
     name: i3lock
     state: absent
 
-- name: "i3 | Copy wallpaper file"
+- name: "i3 | Copier le fond d'écran"
   become_user: "{{ ansible_user }}"
-  copy: 
-    src : ../files/secubian_wallpaper.png 
-    dest : /home/{{ ansible_user }}/.wallpaper_secubian.png 
+  ansible.builtin.copy:
+    src: ../files/secubian_wallpaper.png
+    dest: "/home/{{ ansible_user }}/.wallpaper_secubian.png"
+    mode: "0600"
 
-- name: "i3 | Copy user preferences"
+# Deux tâches avaient le même nom avant, du coup c'était galère à lire dans les logs
+- name: "i3 | Créer le dossier de config"
   become_user: "{{ ansible_user }}"
-  file:
-    path: /home/{{ ansible_user }}/.config/i3/
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/.config/i3/"
     state: directory
+    mode: "0755"
 
-- name: "i3 | Copy user preferences"
+- name: "i3 | Copier ta config i3"
   become_user: "{{ ansible_user }}"
-  copy: 
-    src  : ../files/i3/config 
-    dest : /home/{{ ansible_user }}/.config/i3/config 
+  ansible.builtin.copy:
+    src: ../files/i3/config
+    dest: "/home/{{ ansible_user }}/.config/i3/config"
+    mode: "0644"

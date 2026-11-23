@@ -1,52 +1,64 @@
-- name: "Zircolite | set PythonVersion"
-  ansible.builtin.set_fact:
-    python_version : "3.9.18" 
+# =====================================================================
+# ZIRCOLITE : passe les journaux d'événements Windows (.evtx) au crible
+# des règles Sigma pour trouver les trucs suspects.
+# =====================================================================
 
-- name: "Zircolite | Install requirements"
-  apt:
-    name: 
-      - cargo
+- name: "Zircolite | Choisir la version de Python"
+  ansible.builtin.set_fact:
+    python_version: "3.9.18"
+
+- name: "Zircolite | Installer les prérequis"
+  ansible.builtin.apt:
+    name: cargo
     state: present
 
-- name: "Zircolite | Download repository"
+- name: "Zircolite | Télécharger Zircolite"
   become_user: "{{ ansible_user }}"
-  git:
-    repo: "{{ item.repo }}"
-    accept_hostkey: yes
-    dest: "{{ item.dest }}"
-    recursive: yes
-    force: yes
-  with_items:
-    - { repo: "https://github.com/wagga40/Zircolite.git", dest: "{{ DFIR_toolsDir }}/analyse/tools/windows_evtx/Zircolite" }
+  ansible.builtin.git:
+    repo: https://github.com/wagga40/Zircolite.git
+    dest: "{{ DFIR_toolsDir }}/analyse/tools/windows_evtx/Zircolite"
+    accept_hostkey: true
+    recursive: true
+    force: true
 
-- name: "PyEnv | Install python {{ python_version }}"
+# Python 3.9.18 est normalement déjà installé par pyenv.yml.
+# "--skip-existing" : s'il est là, on fait rien (avant ça plantait et "ignore_errors" cachait l'erreur)
+- name: "Zircolite | S'assurer que Python {{ python_version }} est installé"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: ". $HOME/.env && $HOME/.pyenv/bin/pyenv install {{ python_version }}"
-  ignore_errors: true
+  ansible.builtin.command: "/home/{{ ansible_user }}/.pyenv/bin/pyenv install --skip-existing {{ python_version }}"
+  register: zircolite_pyenv
+  changed_when: "'Installed' in (zircolite_pyenv.stdout + zircolite_pyenv.stderr)"
 
-- name: "Zircolite | Set python version"
+# Dans ce dossier, "python" = Python 3.9.18 (pyenv lit le fichier .python-version)
+- name: "Zircolite | Utiliser Python {{ python_version }} dans son dossier"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: "cd {{ DFIR_toolsDir }}/analyse/tools/windows_evtx/Zircolite; $HOME/.pyenv/bin/pyenv local {{ python_version }}"
+  ansible.builtin.command: "/home/{{ ansible_user }}/.pyenv/bin/pyenv local {{ python_version }}"
+  args:
+    chdir: "{{ DFIR_toolsDir }}/analyse/tools/windows_evtx/Zircolite"
+    creates: "{{ DFIR_toolsDir }}/analyse/tools/windows_evtx/Zircolite/.python-version"
 
-- name: "Zircolite | Requirements tools installation"
+# Avant on passait "$HOME" à Ansible, mais il le remplace pas toujours par ton vrai dossier.
+- name: "Zircolite | Installer les modules Python"
   become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
     requirements: "{{ DFIR_toolsDir }}/analyse/tools/windows_evtx/Zircolite/requirements.txt"
-    virtualenv: "$HOME/.pyenv/versions/{{ python_version }}"
-    virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv {{ python_version }}"
+    executable: "/home/{{ ansible_user }}/.pyenv/versions/{{ python_version }}/bin/pip"
 
-- name: "Zircolite | Update rules"
+# Télécharge les dernières règles. Si internet coupe, c'est pas grave :
+# Zircolite marche avec les règles déjà présentes.
+- name: "Zircolite | Mettre à jour les règles"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: "cd {{ DFIR_toolsDir }}/analyse/tools/windows_evtx/Zircolite; $HOME/.pyenv/versions/{{ python_version }}/bin/python ./zircolite.py -U"
+  ansible.builtin.command: "/home/{{ ansible_user }}/.pyenv/versions/{{ python_version }}/bin/python ./zircolite.py -U"
+  args:
+    chdir: "{{ DFIR_toolsDir }}/analyse/tools/windows_evtx/Zircolite"
   ignore_errors: true
 
-- name: "Zircolite | Add alias"
+# Raccourci : tape "zircolite.py" pour lancer l'analyse
+- name: "Zircolite | Ajouter l'alias"
   become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "~/.aliases"
-    create: yes
-    mode: 0644
-    line: "alias {{ item.alias }}='{{ item.commandLine }}'"
-    regexp: "^alias {{ item.alias }}="
-  with_items:
-    - { alias: "zircolite.py", commandLine: "$HOME/.pyenv/versions/{{ python_version }}/bin/python {{ DFIR_toolsDir }}/analyse/tools/windows_evtx/Zircolite/zircolite.py" }
+  ansible.builtin.lineinfile:
+    path: "/home/{{ ansible_user }}/.aliases"
+    create: true
+    mode: "0644"
+    line: "alias zircolite.py='/home/{{ ansible_user }}/.pyenv/versions/{{ python_version }}/bin/python {{ DFIR_toolsDir }}/analyse/tools/windows_evtx/Zircolite/zircolite.py'"
+    regexp: "^alias zircolite.py="

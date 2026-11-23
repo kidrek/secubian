@@ -1,13 +1,46 @@
+# =====================================================================
+# DURCISSEMENT : on coupe les services qui servent à rien sur un poste
+# d'analyse (imprimante, partage réseau, serveur mail, accès SSH).
+# Moins de services qui tournent = moins de portes d'entrée pour un attaquant.
+# =====================================================================
 
-- name : "Debian - Disable required services"
-  ansible.builtin.service:
-    name: "{{ item.name }}"
+# Certains services se relancent tout seuls via un "socket" ou un "path"
+# (ex : ssh sur Ubuntu récent, cups, avahi). Si on coupe juste le service,
+# il revient dès que quelqu'un tape à la porte. Donc on liste ces sockets d'abord.
+- name: "Hardening | Lister les sockets et paths systemd présents"
+  ansible.builtin.command: systemctl list-unit-files --type=socket,path --no-legend --plain
+  register: hardening_socket_units
+  changed_when: false
+
+# On coupe les sockets, mais seulement ceux qui existent vraiment sur la machine
+- name: "Hardening | Couper les sockets qui relancent les services"
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
     state: stopped
     enabled: false
-  ignore_errors: true
-  with_items:
-    - { name: "avahi-daemon" }
-    - { name: "cups" }
-    - { name: "cups-browsed" }
-    - { name: "exim4" }
-    - { name: "ssh" }
+  loop:
+    - avahi-daemon.socket
+    - cups.socket
+    - cups.path
+    - ssh.socket
+  when: item in hardening_socket_units.stdout
+
+# On récupère la liste des services installés
+# (exim4 existe sur Debian mais pas sur Ubuntu, par exemple)
+- name: "Hardening | Lister les services présents"
+  ansible.builtin.service_facts:
+
+# On stoppe et on désactive chaque service, seulement s'il existe.
+# Avant y'avait "ignore_errors: true" : ça cachait toutes les erreurs, même les vraies.
+- name: "Hardening | Couper les services inutiles"
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  loop:
+    - avahi-daemon   # annonce ta machine sur le réseau local, non merci
+    - cups           # le service d'impression
+    - cups-browsed   # cherche des imprimantes sur le réseau tout seul
+    - exim4          # serveur mail (Debian seulement)
+    - ssh            # accès à distance : si t'en as besoin, enlève cette ligne et ssh.socket au-dessus
+  when: (item + '.service') in ansible_facts.services

@@ -1,99 +1,122 @@
-# Portainer is a docker web manager
-## This will start Portainer on port 8000/http and 9443/https.
+# =====================================================================
+# PORTAINER : une interface web pour gérer Docker
+# Accès : https://127.0.0.1:9443
+# Identifiant : admin  (le mdp dans KeePassXC, entrée "portainer")
+# =====================================================================
 
-- include_tasks: tasks/keepassXC_generate_password.yml
+# Changement entre l'ancienne version et la nouvelle:
+# Depuis Portainer 2.43 (faille CVE-2026-55761), on ne peut plus créer l'admin
+# via l'API sans un "jeton de setup" caché dans les logs -> erreur 403.
+# Le nouveau moyen maintenant : donner le mot de passe à Portainer dès son
+# démarrage (--admin-password-file). Il crée l'admin "admin" tout seul.
+# Avec "-H unix:///var/run/docker.sock" il se branche tout seul sur le Docker local.
+# Résultat : Donc plus besoin d'API
 
-- name: "Portainer | set portainer_username"
-  ansible.builtin.set_fact:
-    portainer_user : "secubian" 
-
-- name: "Portainer | Create volume"
+- name: "Portainer | Créer le volume pour garder les données"
   community.docker.docker_volume:
     name: portainer_data
 
-- name: "Portainer | Create Docker container"
-  community.docker.docker_container:
-    name: portainer
-    image: portainer/portainer-ce
-    state: present
-    recreate: true
-    exposed_ports:
-      - 8000
-      - 9443
-    volumes:
-      - /portainer_data
+# Le mot de passe existe déjà dans KeePassXC ?
+- name: "Portainer | Mot de passe déjà dans KeePassXC ?"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.shell: >-
+    printf '%s\n' {{ keepass_db_password | quote }}
+    | keepassxc-cli show -q -a password {{ keepass_db_path | quote }} portainer
+  delegate_to: localhost
+  register: portainer_keepass_entry
+  changed_when: false
+  failed_when: false
+  no_log: true
 
-- name: "Portainer | Run docker container"
+# Pas encore de mot de passe : on en génère un et on le range dans KeePassXC
+- name: "Portainer | Première fois : nouveau mot de passe"
+  when: portainer_keepass_entry.rc != 0
+  block:
+    - name: "Portainer | Générer un mot de passe"
+      ansible.builtin.include_tasks: tasks/keepassXC_generate_password.yml
+
+    - name: "Portainer | Ranger le mot de passe dans KeePassXC"
+      become_user: "{{ ansible_user }}"
+      ansible.builtin.shell: >-
+        printf '%s\n%s\n' {{ keepass_db_password | quote }} {{ password | quote }}
+        | keepassxc-cli add --url 'https://127.0.0.1:9443/' -u admin -p {{ keepass_db_path | quote }} portainer
+      delegate_to: localhost
+      no_log: true
+
+# Déjà un mot de passe : on le reprend tel quel
+- name: "Portainer | Reprendre le mot de passe de KeePassXC"
+  ansible.builtin.set_fact:
+    password: "{{ portainer_keepass_entry.stdout | trim }}"
+  when: portainer_keepass_entry.rc == 0
+  no_log: true
+
+# Le fichier que Portainer lit au démarrage. 0600 + root = personne d'autre peut le lire.
+- name: "Portainer | Dossier pour le fichier du mot de passe"
+  ansible.builtin.file:
+    path: /etc/portainer
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: "Portainer | Écrire le mot de passe admin"
+  ansible.builtin.copy:
+    dest: /etc/portainer/admin_password
+    content: "{{ password }}"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: "Portainer | Lancer le conteneur"
   community.docker.docker_container:
     name: portainer
     image: portainer/portainer-ce
     state: started
-    restart: true
-    restart_policy: "always"
+    restart_policy: always
+    command:
+      - "--admin-password-file"
+      - "/run/portainer/admin_password"
+      - "-H"
+      - "unix:///var/run/docker.sock"
     volumes:
-     - "portainer_data:/data"
-     - "/var/run/docker.sock:/var/run/docker.sock"
+      - "portainer_data:/data"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/etc/portainer/admin_password:/run/portainer/admin_password:ro"
+    # "127.0.0.1:" = accessible seulement depuis ton PC
     ports:
-     - "9000:8000"
-     - "9443:9443"
+      - "127.0.0.1:9000:8000"
+      - "127.0.0.1:9443:9443"
 
-- name: "Portainer | Wait docker is up and running"
+- name: "Portainer | Attendre que Portainer réponde"
   ansible.builtin.uri:
     url: https://127.0.0.1:9443
     validate_certs: false
-  register: result
-  until: "result.status == 200"
-  retries: 5
+  register: portainer_up
+  until: portainer_up.status == 200
+  retries: 10
   delay: 10
 
-
-- name: "Portainer | Add Entry in keepassXC"
-  become_user: "{{ ansible_user }}"
-  shell: "printf \"%s\n%s\" {{ keepass_db_password }} {{ password }} | keepassxc-cli add --url 'https://127.0.0.1:9443/' -u '{{ portainer_user }}' -p {{ keepass_db_path }} portainer"
-  delegate_to: localhost
-  register: result
-  ignore_errors: False
-
-# Reference : 
-# - https://docs.portainer.io/admin/environments/add/api
-# - https://github.com/dcjulian29/ansible-role-portainer/blob/main/tasks/main.yml
-- name: "Portainer | Configure admin user password"
-  ansible.builtin.uri:
-    url: "https://127.0.0.1:9443/api/users/admin/init"
-    validate_certs: false
-    method: POST
-    return_content: true
-    body_format: json
-    body: '{ "Username":"{{ portainer_user }}", "Password":"{{ password }}"}'
-    status_code: 200, 409
-  when: portainer_user and password is defined
-
-- name: "Portainer | Generate authentication token"
+# On teste la connexion avec admin + le mot de passe, pour être sûr que tout est bon
+- name: "Portainer | Tester la connexion"
   ansible.builtin.uri:
     url: "https://127.0.0.1:9443/api/auth"
     validate_certs: false
     method: POST
-    return_content: true
     body_format: json
-    body: '{"Username": "{{ portainer_user }}", "Password": "{{ password }}"}'
-  register: auth_token
-  when: portainer_user and password is defined
-
-- name: "Portainer | DEBUG - Print token"
-  ansible.builtin.debug:
-    msg: "Portainer token: {{ auth_token.json.jwt }}"
-  when: auth_token is defined
-
-- name: "Portainer | Create a local environment"
-  ansible.builtin.uri:
-    url: "https://127.0.0.1:9443/api/endpoints"
-    validate_certs: false
-    method: POST
-    return_content: true
-    headers:
-      Authorization: "Bearer {{ auth_token.json.jwt }}" 
-    body_format: form-urlencoded 
     body:
-      Name: "secubian"
-      EndpointCreationType: 1
-  when: auth_token
+      Username: admin
+      Password: "{{ password }}"
+    status_code: [200, 401, 422]
+  register: portainer_auth
+  no_log: true
+
+# Si ça marche pas, c'est qu'un ancien admin existe déjà avec un autre mot de passe
+- name: "Portainer | Prévenir si la connexion échoue"
+  ansible.builtin.fail:
+    msg: >-
+      Impossible de se connecter à Portainer avec admin + le mot de passe de KeePassXC.
+      Un ancien admin existe sûrement avec un autre mot de passe. Pour repartir de zéro :
+      sudo docker rm -f portainer && sudo docker volume rm portainer_data
+      puis relance le playbook.
+  when: portainer_auth.status != 200

@@ -1,26 +1,34 @@
-# Volatility
-- name: "Volatility | set PythonVersion"
-  ansible.builtin.set_fact:
-    python_version : "2.7.18" 
+# =====================================================================
+# VOLATILITY 2 : analyse de la RAM (dumps mémoire). C'est l'ancienne version,
+# en Python 2.7, mais plein de plugins existent que pour elle.
+# =====================================================================
 
-- name: "Volatility | Install requirements"
-  apt:
-    name: 
-      - build-essential 
-      - capstone-tool 
+- name: "Volatility | Choisir la version de Python"
+  ansible.builtin.set_fact:
+    python_version: "2.7.18"
+
+# "git-core" n'existe plus sur les Ubuntu récents (apt plantait dessus) : c'est "git" maintenant
+- name: "Volatility | Installer les prérequis"
+  ansible.builtin.apt:
+    name:
+      - build-essential
+      - capstone-tool
       - clamav
-      - git-core
+      - git
       - libcapstone-dev
-      - libraw1394-11 
+      - libraw1394-11
       - libssl-dev
       - tzdata
-      - yara 
+      - yara
     state: present
 
-- name: "Volatility | Install python libraries needed by volatility"
+# Avant on passait "$HOME" à Ansible, mais il le remplace pas toujours par ton vrai dossier.
+# Là on donne directement le pip du Python 2.7.18 de pyenv.
+# (pip choisit tout seul les dernières versions qui marchent encore en Python 2)
+- name: "Volatility | Installer les modules Python"
   become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
-    name: 
+    name:
       - construct
       - distorm3
       - future
@@ -33,102 +41,63 @@
       - pytz
       - setuptools
       - ujson
-    virtualenv: "$HOME/.pyenv/versions/{{ python_version }}"
-    virtualenv_command: $HOME/.pyenv/bin/pyenv virtualenv {{ python_version }}
+    executable: "/home/{{ ansible_user }}/.pyenv/versions/{{ python_version }}/bin/pip"
 
-- name: "Volatility | Clone git repos"
+- name: "Volatility | Télécharger Volatility"
   become_user: "{{ ansible_user }}"
-  git:
-    repo: "{{ item.repo }}"
-    accept_hostkey: yes
-    dest: "{{ item.dest }}"
-    force: yes
-  with_items:
-    - { repo: "https://github.com/volatilityfoundation/volatility.git", dest: "{{ DFIR_toolsDir }}/data_processing/volatility" }
+  ansible.builtin.git:
+    repo: https://github.com/volatilityfoundation/volatility.git
+    dest: "{{ DFIR_toolsDir }}/data_processing/volatility"
+    accept_hostkey: true
+    force: true
 
-- name: "Volatility | Set python version"
+# Dans ce dossier, "python" = Python 2.7.18 (pyenv lit le fichier .python-version)
+- name: "Volatility | Utiliser Python 2.7 dans son dossier"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: "cd {{ DFIR_toolsDir }}/data_processing/volatility; $HOME/.pyenv/bin/pyenv local {{ python_version }}"
+  ansible.builtin.command: "/home/{{ ansible_user }}/.pyenv/bin/pyenv local {{ python_version }}"
+  args:
+    chdir: "{{ DFIR_toolsDir }}/data_processing/volatility"
+    creates: "{{ DFIR_toolsDir }}/data_processing/volatility/.python-version"
 
-#- name: "Volatility | Create YARA Symbolic Link for library"
-#  ansible.builtin.file:
-#    dest: "/usr/lib/libyara.so"
-#    src: "/usr/local/lib/python2.7/dist-packages/usr/lib/libyara.so"
-#    state: link
-
-
-# Volatility Plugins 
-## most of https://github.com/sans-dfir/sift-files/tree/master/volatility should be here
-## src : https://github.com/juju4/ansible-volatility/blob/master/tasks/volatility-modules.yml
-
-- name: "Volatility | Ensure volatility plugins directory exists"
+# ---------------------------------------------------------------------
+# Plugins en plus
+# La plupart viennent de https://github.com/sans-dfir/sift-files/tree/master/volatility
+# Source : https://github.com/juju4/ansible-volatility/blob/master/tasks/volatility-modules.yml
+# ---------------------------------------------------------------------
+- name: "Volatility | Créer le dossier des plugins"
   become_user: "{{ ansible_user }}"
   ansible.builtin.file:
-    dest: "{{ DFIR_toolsDir }}/data_processing/volatility/volatilityplugins"
-    mode: '0755'
+    path: "{{ DFIR_toolsDir }}/data_processing/volatility/volatilityplugins"
     state: directory
+    mode: "0755"
 
-- name: "Volatility | Set up plugins developed and maintained by the community"
+# Avant c'était une tâche par plugin, là c'est groupé (même résultat)
+- name: "Volatility | Télécharger les plugins"
   become_user: "{{ ansible_user }}"
   ansible.builtin.git:
-    repo: https://github.com/volatilityfoundation/community.git
-    dest: "{{ DFIR_toolsDir }}/data_processing/volatility/volatilityplugins/community"
-    force: yes
+    repo: "{{ item.repo }}"
+    dest: "{{ DFIR_toolsDir }}/data_processing/volatility/{{ item.dest }}"
+    force: true
+  loop:
+    # plugins de la communauté
+    - { repo: "https://github.com/volatilityfoundation/community.git", dest: "volatilityplugins/community" }
+    # outils du JP-CERT (détection Cobalt Strike, etc.)
+    # http://blog.jpcert.or.jp/2016/12/a-new-tool-to-d-d6bc.html
+    # https://blog.jpcert.or.jp/2018/08/volatility-plugin-for-detecting-cobalt-strike-beacon.html
+    - { repo: "https://github.com/JPCERTCC/aa-tools.git", dest: "aa-tools" }
+    # ce qui se lance au démarrage de Windows (autoruns)
+    - { repo: "https://github.com/tomchop/volatility-autoruns", dest: "volatilityplugins/volatility-autoruns" }
+    # récupérer les clés BitLocker en mémoire
+    - { repo: "https://github.com/elceef/bitlocker", dest: "volatilityplugins/elceef-bitlocker" }
+    # extraire la config des malwares PlugX et Andromeda
+    - { repo: "https://github.com/arbor-jjones/volatility_plugins.git", dest: "plugx+andromeda" }
 
-## http://blog.jpcert.or.jp/2016/12/a-new-tool-to-d-d6bc.html
-## https://blog.jpcert.or.jp/2018/08/volatility-plugin-for-detecting-cobalt-strike-beacon.html
-- name: "Volatility | Artifact Analysis tool from JP-CERT"
+# Raccourci : tape "vol.py" pour lancer Volatility 2
+- name: "Volatility | Ajouter l'alias"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.git:
-    repo: https://github.com/JPCERTCC/aa-tools.git
-    dest: "{{ DFIR_toolsDir }}/data_processing/volatility/aa-tools"
-    force: yes
-
-- name: "Volatility | module Autoruns"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.git:
-    repo: https://github.com/tomchop/volatility-autoruns
-    dest: "{{ DFIR_toolsDir }}/data_processing/volatility/volatilityplugins/volatility-autoruns"
-    force: yes
-
-- name: "Volatility | module Bitlocker keys retrieving"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.git:
-    repo: https://github.com/elceef/bitlocker
-    dest: "{{ DFIR_toolsDir }}/data_processing/volatility/volatilityplugins/elceef-bitlocker"
-    force: yes
-
-- name: "Volatility | module Malware config extractor - plugx, andromeda"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.git:
-    repo: https://github.com/arbor-jjones/volatility_plugins.git
-    dest: "{{ DFIR_toolsDir }}/data_processing/volatility/plugx+andromeda"
-    force: yes
-
-- name: "Volatility | Add aliases"
-  become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "~/.aliases"
-    create: yes
-    mode: 0644
-    line: "alias {{ item.alias }}='{{ item.commandLine }}'"
-    regexp: "^alias {{ item.alias }}="
-  with_items:
-    - { alias: "vol.py", commandLine: "$HOME/.pyenv/versions/{{ python_version }}/bin/python {{ DFIR_toolsDir }}/data_processing/volatility/vol.py" }
-
-
-#- name: "Volatility | Create desktop file"
-#  copy:
-#    dest: /usr/share/applications/secubian_volatility.desktop
-#    content: |
-#[Desktop Entry]
-#Type=Application
-#Version=1.0
-#Name=volatility
-#Name[vi]=volatility
-#GenericName=FORENSIC VOLATILITY
-#Icon=terminal
-#Exec=terminator -e "echo \"Command: python vol.py -h \n-----\"; cd /home/secubian/Documents/Tools/DFIR/data_processing/volatility/; $HOME/.pyenv/versions/{{ python_version }}/bin/python vol.py -h;${SHELL:-bash};"
-#Terminal=true
-#Categories=SECUBIAN_forensic_memory;
-#Encoding=UTF-8
+  ansible.builtin.lineinfile:
+    path: "/home/{{ ansible_user }}/.aliases"
+    create: true
+    mode: "0644"
+    line: "alias vol.py='/home/{{ ansible_user }}/.pyenv/versions/{{ python_version }}/bin/python {{ DFIR_toolsDir }}/data_processing/volatility/vol.py'"
+    regexp: "^alias vol.py="
