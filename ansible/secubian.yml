@@ -71,7 +71,7 @@
 #   - include_tasks: tasks/forensic/loki.yml
 #   - include_tasks: tasks/forensic/mvt.yml
 #   - include_tasks: tasks/forensic/elk.yml
-   - include_tasks: tasks/forensic/timesketch.yml
+#s   - include_tasks: tasks/forensic/timesketch.yml
    - include_tasks: tasks/forensic/uac.yml
    - include_tasks: tasks/forensic/velociraptor.yml
    - include_tasks: tasks/forensic/volatility.yml
