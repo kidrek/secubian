@@ -1,29 +1,43 @@
 # =====================================================================
-# TIMESKETCH (Google) : pour analyser des timelines à plusieurs, dans le navigateur
+# TIMESKETCH (Google) : analyser des timelines dans le navigateur
 # Accès : http://127.0.0.1:5080  (identifiant : ton user, mot de passe dans KeePassXC)
-# Les conteneurs sont éteints à la fin pour économiser la RAM.
 #
-# Ce qui a changé : avant, le playbook SUPPRIMAIT et réinstallait Timesketch
-# à chaque lancement -> toutes tes timelines étaient perdues.
-# Maintenant il l'installe une seule fois. Pour réinstaller de zéro, supprime
-# le fichier {{ DFIR_toolsDir }}/timesketch/.secubian_installed et relance.
+# - Il s'installe une seule fois (tes timelines sont gardées).
+#   Pour tout réinstaller : supprime {{ DFIR_toolsDir }}/timesketch/.secubian_installed
+# - Il est éteint à la fin pour économiser la RAM.
+#   Pour l'allumer : tape "timesketch" dans le terminal.
 # =====================================================================
 
-# Timesketch n'existe qu'en version PC classique (amd64)
-- name: "Timesketch | Trouver l'architecture du PC"
+# Mémoire donnée à OpenSearch (la base de Timesketch), en Go.
+# 1 Go = le minimum pour une petite VM. Monte à 2 ou 4 si t'as plus de RAM.
+- name: "Timesketch | Réglages"
   ansible.builtin.set_fact:
     deb_arch: "{{ arch | default('arm64' if ansible_architecture == 'aarch64' else 'amd64') }}"
+    timesketch_opensearch_mem_gb: "{{ timesketch_opensearch_mem_gb | default(1) }}"
 
+# Timesketch existe seulement pour les PC classiques (amd64)
 - name: "Timesketch | Pas dispo sur ce processeur"
   ansible.builtin.debug:
     msg: "Timesketch existe seulement en amd64, on passe."
   when: deb_arch != 'amd64'
 
-# Avant y'avait "when: arch == amd64" sur chaque tâche. Un "block" fait ça en une fois.
 - name: "Timesketch | Installation"
   when: deb_arch == 'amd64'
   block:
-    # Ce petit fichier est créé tout à la fin de l'install : s'il est là, tout s'est bien passé
+    # OpenSearch refuse de démarrer sans ce réglage du noyau Linux
+    - name: "Timesketch | Réglage mémoire pour OpenSearch"
+      ansible.builtin.copy:
+        dest: /etc/sysctl.d/99-opensearch.conf
+        content: "vm.max_map_count=262144\n"
+        mode: "0644"
+      register: timesketch_sysctl
+
+    - name: "Timesketch | Appliquer le réglage tout de suite"
+      ansible.builtin.command: sysctl --system
+      when: timesketch_sysctl.changed
+
+    # Le petit fichier ".secubian_installed" est créé à la toute fin :
+    # s'il est là, Timesketch est déjà installé
     - name: "Timesketch | Déjà installé ?"
       ansible.builtin.stat:
         path: "{{ DFIR_toolsDir }}/timesketch/.secubian_installed"
@@ -37,7 +51,7 @@
     - name: "Timesketch | Nouvelle installation"
       when: not timesketch_installed.stat.exists
       block:
-        # S'il reste une install ratée d'avant, on fait le ménage
+        # On vire ce qui reste d'une install ratée d'avant
         - name: "Timesketch | Supprimer les vieux conteneurs"
           community.docker.docker_container:
             name: "{{ item }}"
@@ -70,8 +84,7 @@
             dest: "{{ DFIR_toolsDir }}/timesketch/deploy_timesketch.sh"
             mode: "0755"
 
-        # "yes N" répond "non" à toutes les questions du script
-        # (on démarre et on crée le user nous-mêmes juste après)
+        # "yes N" = on répond "non" à ses questions (on fait le reste nous-mêmes)
         - name: "Timesketch | Lancer le script d'installation"
           ansible.builtin.shell: yes N | ./deploy_timesketch.sh
           args:
@@ -85,18 +98,18 @@
             group: "{{ ansible_user }}"
             recurse: true
 
-        # Mémoire d'OpenSearch (4 Go) et ports (5080/5443 pour pas gêner nginx sur 80/443)
+        # Mémoire d'OpenSearch + ports 5080/5443 (pour pas gêner nginx sur 80/443)
         - name: "Timesketch | Régler config.env"
           ansible.builtin.lineinfile:
             path: "{{ DFIR_toolsDir }}/timesketch/timesketch/config.env"
             line: "{{ item.line }}"
             regexp: "{{ item.regexp }}"
           loop:
-            - { line: "OPENSEARCH_MEM_USE_GB=4", regexp: "^OPENSEARCH_MEM_USE_GB=" }
+            - { line: "OPENSEARCH_MEM_USE_GB={{ timesketch_opensearch_mem_gb }}", regexp: "^OPENSEARCH_MEM_USE_GB=" }
             - { line: "NGINX_HTTPS_PORT=5443", regexp: "^NGINX_HTTPS_PORT=" }
             - { line: "NGINX_HTTP_PORT=5080", regexp: "^NGINX_HTTP_PORT=" }
 
-        # Le jeton de sécurité des formulaires dure 1h au lieu de quelques minutes
+        # Le jeton de sécurité des formulaires dure 1h
         - name: "Timesketch | Allonger la durée du jeton CSRF"
           ansible.builtin.lineinfile:
             path: "{{ DFIR_toolsDir }}/timesketch/timesketch/etc/timesketch/timesketch.conf"
@@ -110,7 +123,8 @@
             mode: "0644"
             force: true
 
-        # "docker compose" (avec un espace) = la version moderne de docker-compose
+        # Si ça plante ici, c'est presque toujours la RAM : regarde
+        # "sudo docker logs opensearch --tail 20"
         - name: "Timesketch | Démarrer"
           ansible.builtin.command: docker compose up -d
           args:
@@ -129,9 +143,8 @@
             keepass_url: "http://127.0.0.1:5080/"
             keepass_username: "{{ ansible_user }}"
 
-        # "-T" : obligatoire quand c'est pas toi qui tapes dans un terminal
-        # (sinon erreur "the input device is not a TTY").
-        # Au lieu d'attendre 30 secondes au pif, on réessaie jusqu'à ce que ça marche.
+        # "-T" = obligatoire quand c'est Ansible qui lance la commande.
+        # On réessaie jusqu'à ce que Timesketch soit prêt.
         - name: "Timesketch | Créer ton compte"
           ansible.builtin.command: >-
             docker compose exec -T timesketch-web
@@ -144,7 +157,7 @@
           delay: 15
           no_log: true
 
-        # Le client d'import, pour envoyer des timelines depuis le worker
+        # Le client d'import, pour envoyer des timelines
         - name: "Timesketch | Installer le client d'import"
           ansible.builtin.command: docker compose exec -T timesketch-worker pip3 install timesketch-import-client
           args:
@@ -155,8 +168,7 @@
           args:
             chdir: "{{ DFIR_toolsDir }}/timesketch/timesketch"
 
-        # On éteint pour économiser la RAM, et ça redémarre pas tout seul au boot.
-        # (Avant c'était le module docker_container, qui peut vouloir recréer le conteneur et planter)
+        # Pas de démarrage auto au boot du PC (ça bouffe trop de RAM)
         - name: "Timesketch | Pas de démarrage automatique"
           ansible.builtin.command: >-
             docker update --restart=no
@@ -168,7 +180,7 @@
           args:
             chdir: "{{ DFIR_toolsDir }}/timesketch/timesketch"
 
-        # Tout s'est bien passé : on pose le petit fichier "c'est installé"
+        # Tout s'est bien passé : on note que c'est installé
         - name: "Timesketch | Noter que l'install est finie"
           ansible.builtin.file:
             path: "{{ DFIR_toolsDir }}/timesketch/.secubian_installed"
@@ -177,11 +189,12 @@
             group: "{{ ansible_user }}"
             mode: "0644"
 
-        - name: "Timesketch | Ajouter l'alias pour lancer Timesketch"
-          become_user: "{{ ansible_user }}"
-          ansible.builtin.lineinfile:
-            path: "/home/{{ ansible_user }}/.aliases"
-            create: true
-            mode: "0644"
-            line: 'alias timesketch="cd {{ DFIR_toolsDir }}/timesketch/timesketch && sudo docker compose up -d; cd -"'
-            regexp: "^alias timesketch="
+    # Raccourci : tape "timesketch" pour l'allumer
+    - name: "Timesketch | Ajouter l'alias pour l'allumer"
+      become_user: "{{ ansible_user }}"
+      ansible.builtin.lineinfile:
+        path: "/home/{{ ansible_user }}/.aliases"
+        create: true
+        mode: "0644"
+        line: 'alias timesketch="cd {{ DFIR_toolsDir }}/timesketch/timesketch && sudo docker compose up -d; cd -"'
+        regexp: "^alias timesketch="

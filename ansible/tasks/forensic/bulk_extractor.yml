@@ -19,13 +19,28 @@
       - libxml2-dev
       - libtool
       - make
-      - pkg-config     # ajouté : le "configure" s'en sert pour trouver les librairies
+      - pkg-config
       - zlib1g-dev
       - wget
     state: present
 
-# "recursive: true" : bulk_extractor a des sous-modules git (be20_api...).
-# Sans ça, il manquait des morceaux et la compilation plantait.
+# Compiler c'est long : on le fait seulement si bulk_extractor est pas déjà installé.
+# Pour forcer une recompilation : sudo rm /usr/local/bin/bulk_extractor
+- name: "Bulk Extractor | Déjà installé ?"
+  ansible.builtin.stat:
+    path: /usr/local/bin/bulk_extractor
+  register: bulk_extractor_bin
+
+# Pas installé = on repart d'un dossier tout propre.
+# Sinon il reste des morceaux d'une compilation ratée d'avant
+# (erreur "undefined reference to scan_base16").
+- name: "Bulk Extractor | Supprimer l'ancien dossier de compilation"
+  ansible.builtin.file:
+    path: "{{ DFIR_toolsDir }}/data_processing/bulk_extractor"
+    state: absent
+  when: not bulk_extractor_bin.stat.exists
+
+# "recursive" = on prend aussi les sous-modules (sinon il manque des morceaux)
 - name: "Bulk Extractor | Télécharger le code"
   become_user: "{{ ansible_user }}"
   ansible.builtin.git:
@@ -34,22 +49,7 @@
     recursive: true
     force: true
 
-# Avant il y avait ici une tâche qui commentait les "r.restart()" dans le code.
-# C'était un bricolage pour une vieille version : maintenant le code fait
-# "const auto restart = r.restart();" et s'en sert juste après. Le commenter
-# cassait la compilation. Le code d'origine compile très bien tel quel.
-# ("force: true" juste au-dessus remet le code d'origine si l'ancien bricolage est passé)
-
-# Compiler ça prend du temps, donc on le fait seulement si bulk_extractor est pas déjà installé.
-# Pour forcer une recompilation : sudo rm /usr/local/bin/bulk_extractor puis relance le playbook.
-- name: "Bulk Extractor | Déjà installé ?"
-  ansible.builtin.stat:
-    path: /usr/local/bin/bulk_extractor
-  register: bulk_extractor_bin
-
-# Avant tout se faisait en "sudo" dans un shell : les fichiers de compilation
-# appartenaient à root dans TON dossier. Là on compile avec ton user,
-# et seule l'installation finale (make install) se fait en root.
+# On compile avec ton user, seule l'installation finale se fait en root
 - name: "Bulk Extractor | Compiler"
   when: not bulk_extractor_bin.stat.exists
   block:
@@ -68,7 +68,7 @@
     # -j = on utilise tous les cœurs du processeur, ça va plus vite
     - name: "Bulk Extractor | Compiler (make)"
       become_user: "{{ ansible_user }}"
-      ansible.builtin.command: "make -j{{ ansible_processor_vcpus | default(2) }}"
+      ansible.builtin.command: "make -j{{ ansible_facts['processor_vcpus'] | default(2) }}"
       args:
         chdir: "{{ DFIR_toolsDir }}/data_processing/bulk_extractor"
 

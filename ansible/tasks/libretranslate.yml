@@ -21,18 +21,42 @@
 # Avant on lançait LibreTranslate une 1re fois en arrière-plan pour télécharger les langues,
 # puis on lançait le service... mais le 1er tournait toujours et bloquait le port 5000.
 # Maintenant on lance juste le service : au premier démarrage il télécharge les langues tout seul.
+# Le service est écrit directement ici (avant c'était files/libretranslate/libretranslate.service,
+# qui pointait vers ".pyenv/shims/libretranslate" : ce chemin existe pas, le service plantait).
 - name: "LibreTranslate | Installer le service systemd"
-  ansible.builtin.template:
-    src: ../files/libretranslate/libretranslate.service
+  ansible.builtin.copy:
     dest: /etc/systemd/system/libretranslate.service
     mode: "0644"
+    content: |
+      [Unit]
+      Description=LibreTranslate
+      # On attend le réseau (téléchargement des langues au 1er démarrage)
+      After=network-online.target
+      Wants=network-online.target
 
+      [Service]
+      # Tourne avec ton user, pas en root
+      User={{ ansible_user }}
+      Group={{ ansible_user }}
+      # Le vrai programme. 127.0.0.1 = accessible seulement depuis ton PC
+      ExecStart=/home/{{ ansible_user }}/.pyenv/versions/{{ python_version }}/bin/libretranslate --host 127.0.0.1 --port 5000
+      # Seulement anglais et français : beaucoup plus rapide à télécharger
+      Environment=LT_LOAD_ONLY=en,fr
+      # S'il plante, il redémarre au bout de 10 secondes
+      Restart=on-failure
+      RestartSec=10
+
+      [Install]
+      WantedBy=multi-user.target
+  register: libretranslate_service
+
+# "restarted" si le fichier du service vient de changer, sinon juste "started"
 - name: "LibreTranslate | Activer et démarrer le service"
   ansible.builtin.systemd_service:
     name: libretranslate
     daemon_reload: true
     enabled: true
-    state: started
+    state: "{{ 'restarted' if libretranslate_service.changed else 'started' }}"
 
 # Le 1er démarrage peut être long (téléchargement de toutes les langues).
 # On vérifie toutes les 2 minutes, pendant 1h max.

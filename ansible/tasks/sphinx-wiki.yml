@@ -15,6 +15,16 @@
     name: nginx
     state: present
 
+# Apache et nginx veulent tous les deux le port 80.
+# Si Apache est là (installé en douce par git-all), on le vire.
+- name: "Wiki | Supprimer Apache (il bloque nginx)"
+  ansible.builtin.apt:
+    name:
+      - apache2
+      - apache2-bin
+    state: absent
+    purge: true
+
 - name: "Wiki | Démarrer nginx"
   ansible.builtin.service:
     name: nginx

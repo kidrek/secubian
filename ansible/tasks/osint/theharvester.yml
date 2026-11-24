@@ -1,41 +1,87 @@
-- name: "TheHarvester | set PythonVersion"
+# =====================================================================
+# THEHARVESTER : récupère mails, sous-domaines, IP, noms... sur une cible
+# depuis des sources publiques (moteurs de recherche, certificats, etc.)
+#
+# Depuis la version 5, theHarvester demande Python 3.14 minimum et s'installe
+# comme un vrai paquet (plus de requirements/base.txt ni de theHarvester.py).
+# On l'installe dans son propre environnement : ~/.venvs/theharvester
+# =====================================================================
+
+- name: "TheHarvester | Chemins utiles"
   ansible.builtin.set_fact:
-    python_version : "3.13.0" 
+    theharvester_dir: "{{ OSINT_toolsDir }}/theharvester"
+    theharvester_venv: "/home/{{ ansible_user }}/.venvs/theharvester"
 
-- name: "TheHarvester | Clone git repos"
+- name: "TheHarvester | Installer les prérequis"
+  ansible.builtin.apt:
+    name:
+      - python3
+      - python3-venv
+    state: present
+
+- name: "TheHarvester | Télécharger theHarvester"
   become_user: "{{ ansible_user }}"
-  git:
-    repo: "{{ item.repo }}"
-    dest: "{{ item.dest }}"
-    accept_hostkey: yes
-    force: yes
-    recursive: yes
-  with_items:
-    - { repo: "https://github.com/laramies/theHarvester", dest: "{{ OSINT_toolsDir }}/theharvester" }
+  ansible.builtin.git:
+    repo: https://github.com/laramies/theHarvester
+    dest: "{{ theharvester_dir }}"
+    accept_hostkey: true
+    force: true
+  register: theharvester_git
 
-- name: "TheHarvester | Install python {{ python_version }}"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: ". $HOME/.env && $HOME/.pyenv/bin/pyenv install {{ python_version }}"
-  ignore_errors: true
+# ---------------------------------------------------------------------
+# Trouver un Python 3.14 ou plus
+# - Si celui d'Ubuntu suffit, on le prend.
+# - Sinon on installe le dernier 3.14 avec pyenv (pyenv.yml doit être passé avant).
+# ---------------------------------------------------------------------
+- name: "TheHarvester | Version du Python d'Ubuntu"
+  ansible.builtin.command: python3 -c "import sys; print('%d.%d' % sys.version_info[:2])"
+  register: theharvester_sys_py
+  changed_when: false
 
-- name: "TheHarvester | Set python version"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: "cd {{ OSINT_toolsDir }}/theharvester; $HOME/.pyenv/bin/pyenv local {{ python_version }}"
+- name: "TheHarvester | Le Python d'Ubuntu suffit"
+  ansible.builtin.set_fact:
+    theharvester_python: /usr/bin/python3
+  when: theharvester_sys_py.stdout is version('3.14', '>=')
 
-- name: "TheHarvester | Requirements tools installation"
+- name: "TheHarvester | Sinon, prendre Python 3.14 avec pyenv"
+  when: theharvester_sys_py.stdout is version('3.14', '<')
+  block:
+    - name: "TheHarvester | Trouver le dernier Python 3.14"
+      become_user: "{{ ansible_user }}"
+      ansible.builtin.command: "/home/{{ ansible_user }}/.pyenv/bin/pyenv latest -k 3.14"
+      register: theharvester_py314
+      changed_when: false
+
+    # "--skip-existing" = s'il est déjà installé, on le recompile pas
+    - name: "TheHarvester | Installer Python {{ theharvester_py314.stdout }}"
+      become_user: "{{ ansible_user }}"
+      ansible.builtin.command: "/home/{{ ansible_user }}/.pyenv/bin/pyenv install --skip-existing {{ theharvester_py314.stdout }}"
+      register: theharvester_pyenv
+      changed_when: "'Installed' in (theharvester_pyenv.stdout + theharvester_pyenv.stderr)"
+
+    - name: "TheHarvester | Utiliser ce Python"
+      ansible.builtin.set_fact:
+        theharvester_python: "/home/{{ ansible_user }}/.pyenv/versions/{{ theharvester_py314.stdout }}/bin/python"
+
+# On installe theHarvester (et tout ce dont il a besoin) dans son environnement.
+# S'il a été mis à jour par git, on le réinstalle pour prendre la nouvelle version.
+- name: "TheHarvester | Installer theHarvester"
   become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
-    requirements: "{{ OSINT_toolsDir }}/theharvester/requirements/base.txt"
-    virtualenv: "$HOME/.pyenv/versions/{{ python_version }}"
-    virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv {{ python_version }}"
+    name: "{{ theharvester_dir }}"
+    state: "{{ 'forcereinstall' if theharvester_git.changed else 'present' }}"
+    virtualenv: "{{ theharvester_venv }}"
+    virtualenv_command: "{{ theharvester_python }} -m venv"
 
-- name: "TheHarvester | Add alias"
+# Raccourcis : "theHarvester" ou "theHarvester.py" (l'ancien nom marche toujours)
+- name: "TheHarvester | Ajouter les alias"
   become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "~/.aliases"
-    create: yes
-    mode: 0644
-    line: "alias {{ item.alias }}='{{ item.commandLine }}'"
-    regexp: "^alias {{ item.alias }}="
-  with_items:
-    - { alias: "theHarvester.py", commandLine: "$HOME/.pyenv/versions/{{ python_version }}/bin/python {{ OSINT_toolsDir }}/theharvester/theHarvester.py" }
+  ansible.builtin.lineinfile:
+    path: "/home/{{ ansible_user }}/.aliases"
+    create: true
+    mode: "0644"
+    line: "alias {{ item }}='{{ theharvester_venv }}/bin/theHarvester'"
+    regexp: "^alias {{ item }}="
+  loop:
+    - theHarvester
+    - theHarvester.py

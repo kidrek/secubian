@@ -42,36 +42,36 @@
        - "{{ OSINT_toolsDir }}/domains"
        - "{{ playbooksDir }}"
 
-#   - include_tasks: tasks/pyenv.yml
-#   - include_tasks: tasks/requirements_packages.yml
-#   - include_tasks: tasks/gnome.yml
-#   - include_tasks: tasks/i3.yml
-#   - include_tasks: tasks/keepassXC_create_db.yml
-#   - include_tasks: tasks/zsh.yml
-#   - include_tasks: tasks/vscode.yml
-#   - include_tasks: tasks/firefox.yml
-#   - include_tasks: tasks/docker.yml
-#   - include_tasks: tasks/draw_io.yml
-#   - include_tasks: tasks/glance.yml
-#   - include_tasks: tasks/n8n.yml
-#   - include_tasks: tasks/portainer.yml
-#   - include_tasks: tasks/secubian-jupyternotebook.yml
-#   - include_tasks: tasks/sphinx-wiki.yml
-#   - include_tasks: tasks/libretranslate.yml
-#   - include_tasks: tasks/detection/rules/sigma.yml
-#   - include_tasks: tasks/detection/rules/yara.yml
-#   - include_tasks: tasks/detection/suricata.yml
-#   - include_tasks: tasks/forensic/bulk_extractor.yml
-#   - include_tasks: tasks/forensic/capa.yml
-#   - include_tasks: tasks/forensic/CIRCL_Hashlookup.yml
-#   - include_tasks: tasks/forensic/cyberchef.yml
-#   - include_tasks: tasks/forensic/didierStevens.yml
-#   - include_tasks: tasks/forensic/IRISWeb.yml
-#   - include_tasks: tasks/forensic/log2timeline.yml
-#   - include_tasks: tasks/forensic/loki.yml
-#   - include_tasks: tasks/forensic/mvt.yml
-#   - include_tasks: tasks/forensic/elk.yml
-#s   - include_tasks: tasks/forensic/timesketch.yml
+   - include_tasks: tasks/pyenv.yml
+   - include_tasks: tasks/requirements_packages.yml
+   - include_tasks: tasks/gnome.yml
+   - include_tasks: tasks/i3.yml
+   - include_tasks: tasks/keepassXC_create_db.yml
+   - include_tasks: tasks/zsh.yml
+   - include_tasks: tasks/vscode.yml
+   - include_tasks: tasks/firefox.yml
+   - include_tasks: tasks/docker.yml
+   - include_tasks: tasks/draw_io.yml
+   - include_tasks: tasks/glance.yml
+   - include_tasks: tasks/n8n.yml
+   - include_tasks: tasks/portainer.yml
+   - include_tasks: tasks/secubian-jupyternotebook.yml
+   - include_tasks: tasks/sphinx-wiki.yml
+   - include_tasks: tasks/libretranslate.yml
+   - include_tasks: tasks/detection/rules/sigma.yml
+   - include_tasks: tasks/detection/rules/yara.yml
+   - include_tasks: tasks/detection/suricata.yml
+   - include_tasks: tasks/forensic/bulk_extractor.yml
+   - include_tasks: tasks/forensic/capa.yml
+   - include_tasks: tasks/forensic/CIRCL_Hashlookup.yml
+   - include_tasks: tasks/forensic/cyberchef.yml
+   - include_tasks: tasks/forensic/didierStevens.yml
+   - include_tasks: tasks/forensic/IRISWeb.yml
+   - include_tasks: tasks/forensic/log2timeline.yml
+   - include_tasks: tasks/forensic/loki.yml
+   - include_tasks: tasks/forensic/mvt.yml
+   - include_tasks: tasks/forensic/elk.yml
+   - include_tasks: tasks/forensic/timesketch.yml
    - include_tasks: tasks/forensic/uac.yml
    - include_tasks: tasks/forensic/velociraptor.yml
    - include_tasks: tasks/forensic/volatility.yml
@@ -80,7 +80,7 @@
    - include_tasks: tasks/osint/blackbird.yml
    - include_tasks: tasks/osint/ct-exposer.yml
    - include_tasks: tasks/osint/spiderfoot.yml
-   #- include_tasks: tasks/osint/theharvester.yml
+   - include_tasks: tasks/osint/theharvester.yml
    - include_tasks: tasks/debian_hardening.yml
 
    - name: Install - AV Security tools

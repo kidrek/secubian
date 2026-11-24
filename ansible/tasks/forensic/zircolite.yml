@@ -1,56 +1,67 @@
 # =====================================================================
-# ZIRCOLITE : passe les journaux d'événements Windows (.evtx) au crible
-# des règles Sigma pour trouver les trucs suspects.
+# ZIRCOLITE : passe les journaux Windows (.evtx) au crible des règles Sigma
+# pour trouver les trucs suspects.
+#
+# Depuis la version 4.8, Zircolite demande Python 3.12 à 3.14 (le 3.9.18 de pyenv
+# marche plus) et n'a plus de requirements.txt. On lui fait donc son propre
+# environnement Python dans ~/.venvs/zircolite, avec le Python d'Ubuntu.
 # =====================================================================
 
-- name: "Zircolite | Choisir la version de Python"
+- name: "Zircolite | Chemins utiles"
   ansible.builtin.set_fact:
-    python_version: "3.9.18"
+    zircolite_dir: "{{ DFIR_toolsDir }}/analyse/tools/windows_evtx/Zircolite"
+    zircolite_venv: "/home/{{ ansible_user }}/.venvs/zircolite"
 
+# python3-dev + build-essential : Zircolite compile un petit morceau en C à l'install
 - name: "Zircolite | Installer les prérequis"
   ansible.builtin.apt:
-    name: cargo
+    name:
+      - python3
+      - python3-venv
+      - python3-dev
+      - build-essential
     state: present
+
+# On vérifie que le Python d'Ubuntu est entre 3.12 et 3.14
+- name: "Zircolite | Version du Python d'Ubuntu"
+  ansible.builtin.command: python3 -c "import sys; print('%d.%d' % sys.version_info[:2])"
+  register: zircolite_pyver
+  changed_when: false
+
+- name: "Zircolite | Vérifier la version de Python"
+  ansible.builtin.assert:
+    that:
+      - zircolite_pyver.stdout is version('3.12', '>=')
+      - zircolite_pyver.stdout is version('3.14', '<=')
+    fail_msg: "Zircolite demande Python 3.12 à 3.14, Ubuntu a le {{ zircolite_pyver.stdout }}."
+    success_msg: "Python {{ zircolite_pyver.stdout }} : OK pour Zircolite"
 
 - name: "Zircolite | Télécharger Zircolite"
   become_user: "{{ ansible_user }}"
   ansible.builtin.git:
     repo: https://github.com/wagga40/Zircolite.git
-    dest: "{{ DFIR_toolsDir }}/analyse/tools/windows_evtx/Zircolite"
+    dest: "{{ zircolite_dir }}"
     accept_hostkey: true
-    recursive: true
     force: true
 
-# Python 3.9.18 est normalement déjà installé par pyenv.yml.
-# "--skip-existing" : s'il est là, on fait rien (avant ça plantait et "ignore_errors" cachait l'erreur)
-- name: "Zircolite | S'assurer que Python {{ python_version }} est installé"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.command: "/home/{{ ansible_user }}/.pyenv/bin/pyenv install --skip-existing {{ python_version }}"
-  register: zircolite_pyenv
-  changed_when: "'Installed' in (zircolite_pyenv.stdout + zircolite_pyenv.stderr)"
-
-# Dans ce dossier, "python" = Python 3.9.18 (pyenv lit le fichier .python-version)
-- name: "Zircolite | Utiliser Python {{ python_version }} dans son dossier"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.command: "/home/{{ ansible_user }}/.pyenv/bin/pyenv local {{ python_version }}"
-  args:
-    chdir: "{{ DFIR_toolsDir }}/analyse/tools/windows_evtx/Zircolite"
-    creates: "{{ DFIR_toolsDir }}/analyse/tools/windows_evtx/Zircolite/.python-version"
-
-# Avant on passait "$HOME" à Ansible, mais il le remplace pas toujours par ton vrai dossier.
-- name: "Zircolite | Installer les modules Python"
+# On installe Zircolite et tout ce dont il a besoin dans son environnement.
+# Le module pip crée l'environnement tout seul s'il existe pas.
+# "-e" = il utilise directement le code téléchargé (pratique pour les mises à jour)
+- name: "Zircolite | Installer Zircolite et ses modules"
   become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
-    requirements: "{{ DFIR_toolsDir }}/analyse/tools/windows_evtx/Zircolite/requirements.txt"
-    executable: "/home/{{ ansible_user }}/.pyenv/versions/{{ python_version }}/bin/pip"
+    name: "{{ zircolite_dir }}"
+    editable: true
+    virtualenv: "{{ zircolite_venv }}"
+    virtualenv_command: python3 -m venv
 
-# Télécharge les dernières règles. Si internet coupe, c'est pas grave :
+# Télécharge les dernières règles. Si internet coupe c'est pas grave,
 # Zircolite marche avec les règles déjà présentes.
 - name: "Zircolite | Mettre à jour les règles"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.command: "/home/{{ ansible_user }}/.pyenv/versions/{{ python_version }}/bin/python ./zircolite.py -U"
+  ansible.builtin.command: "{{ zircolite_venv }}/bin/python zircolite.py -U"
   args:
-    chdir: "{{ DFIR_toolsDir }}/analyse/tools/windows_evtx/Zircolite"
+    chdir: "{{ zircolite_dir }}"
   ignore_errors: true
 
 # Raccourci : tape "zircolite.py" pour lancer l'analyse
@@ -60,5 +71,5 @@
     path: "/home/{{ ansible_user }}/.aliases"
     create: true
     mode: "0644"
-    line: "alias zircolite.py='/home/{{ ansible_user }}/.pyenv/versions/{{ python_version }}/bin/python {{ DFIR_toolsDir }}/analyse/tools/windows_evtx/Zircolite/zircolite.py'"
+    line: "alias zircolite.py='{{ zircolite_venv }}/bin/python {{ zircolite_dir }}/zircolite.py'"
     regexp: "^alias zircolite.py="
