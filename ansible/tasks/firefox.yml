@@ -1,37 +1,45 @@
-- name: Set package and profile path for Debian 
-  set_fact:
+# =====================================================================
+# FIREFOX : installe Firefox et lui colle tes réglages (policies.json)
+# =====================================================================
+
+# Sur Debian c'est "firefox-esr", sur Ubuntu c'est "firefox" (version snap).
+# Le dossier des réglages n'est pas au même endroit non plus.
+- name: "Firefox | Réglages pour Debian"
+  ansible.builtin.set_fact:
     firefox_package: "firefox-esr"
-    firefox_policies_path: "/usr/share/firefox-esr/distribution/"
-  when: (ansible_distribution == 'Debian') 
+    firefox_policies_path: "/usr/share/firefox-esr/distribution"
+  when: ansible_distribution == 'Debian'
 
-- name: Set package and profile path for Ubuntu 
-  set_fact:
+- name: "Firefox | Réglages pour Ubuntu"
+  ansible.builtin.set_fact:
     firefox_package: "firefox"
-    firefox_policies_path: "/etc/firefox/policies/"
-  when: (ansible_distribution == 'Ubuntu') 
+    firefox_policies_path: "/etc/firefox/policies"
+  when: ansible_distribution == 'Ubuntu'
 
+# Si t'es ni sur Debian ni sur Ubuntu, on s'arrête avec un message clair
+# au lieu d'une erreur chelou plus loin.
+- name: "Firefox | Vérifier qu'on connaît ta distrib"
+  ansible.builtin.assert:
+    that: firefox_package is defined
+    fail_msg: "Firefox : distrib pas gérée ({{ ansible_distribution }}). Seulement Debian et Ubuntu."
 
 - name: "Firefox | Installation"
-  apt:
+  ansible.builtin.apt:
     name: "{{ firefox_package }}"
     state: present
 
-- name: create directory if it doesn't exist
-  file:
+- name: "Firefox | Créer le dossier des réglages"
+  ansible.builtin.file:
     path: "{{ firefox_policies_path }}"
     state: directory
-    mode: 0775
+    mode: "0755"
 
-- name: "Firefox | Copy user preferences"
-  #copy: src=../files/firefox_policies.json dest=/usr/share/firefox-esr/distribution/policies.json owner=root group=root mode=755
-  ansible.builtin.template: 
-    src  : ../files/firefox/firefox_policies.json 
-    dest : "{{ firefox_policies_path }}/policies.json"
-  # dest : /usr/share/firefox-esr/distribution/policies.json 
-
-- name: "Firefox | set permissions"
-  ansible.builtin.file:
-    path: "{{ firefox_policies_path }}/policies.json"
+# Les droits d'avant ("1755") étaient bizarres pour un simple fichier texte.
+# 0644 = tout le monde peut le lire, seul root peut le modifier. C'est ce qu'il faut.
+- name: "Firefox | Copier tes réglages"
+  ansible.builtin.template:
+    src: ../files/firefox/firefox_policies.json
+    dest: "{{ firefox_policies_path }}/policies.json"
     owner: root
     group: root
-    mode: '1755'
+    mode: "0644"

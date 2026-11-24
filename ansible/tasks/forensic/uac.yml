@@ -1,25 +1,37 @@
+# =====================================================================
+# UAC (Unix-like Artifacts Collector) : un script qu'on lance sur une machine
+# Linux/Mac suspecte pour récupérer toutes les traces utiles.
+# On télécharge juste l'archive, prête à être copiée sur une clé.
+# =====================================================================
 
-
-- name: "UAC | Get latest version of UAC from Github API"
-  become_user: "{{ ansible_user }}"
-  uri:
+# Avant ces tâches avaient "become_user", ça servait à rien pour juste interroger GitHub
+- name: "UAC | Chercher la dernière version sur GitHub"
+  ansible.builtin.uri:
     url: "https://api.github.com/repos/tclahr/uac/releases/latest"
-    return_content: yes
-  register: url_content
+    return_content: true
+  register: uac_release
 
-- name: "UAC | Set latest version in uac_latest_version variable"
-  become_user: "{{ ansible_user }}"
-  set_fact:
-    uac_latest_version: "{{ url_content.json.name }}"
+# Avant on devinait le nom du fichier à partir du nom de la version, et ça cassait
+# si le nom changeait un peu. Là on prend directement le .tar.gz de la liste des fichiers.
+- name: "UAC | Trouver l'archive à télécharger"
+  ansible.builtin.set_fact:
+    uac_asset: >-
+      {{ uac_release.json.assets
+         | selectattr('name', 'search', '\.tar\.gz$')
+         | first }}
 
-- name: "UAC | Set latest version tag name in uac_latest_version variable"
-  become_user: "{{ ansible_user }}"
-  set_fact:
-    uac_latest_tag_name: "{{ url_content.json.tag_name }}"
+- name: "UAC | Créer le dossier"
+  ansible.builtin.file:
+    path: "{{ DFIR_toolsDir }}/collecte/linux"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
 
-- name: "UAC | Install"
+# Une archive c'est pas un programme : 0644 suffit (avant c'était 0755)
+- name: "UAC | Télécharger"
   become_user: "{{ ansible_user }}"
-  get_url:
-    url: "https://github.com/tclahr/uac/releases/download/{{ uac_latest_tag_name }}/{{ uac_latest_version }}.tar.gz"
-    dest: "{{ DFIR_toolsDir }}/collecte/linux/{{ uac_latest_version }}.tar.gz"
-    mode: 0755
+  ansible.builtin.get_url:
+    url: "{{ uac_asset.browser_download_url }}"
+    dest: "{{ DFIR_toolsDir }}/collecte/linux/{{ uac_asset.name }}"
+    mode: "0644"

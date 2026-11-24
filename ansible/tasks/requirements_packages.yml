@@ -1,13 +1,23 @@
-- name: Install requirements
-  apt:
-    name: 
+# =====================================================================
+# PAQUETS DE BASE : tous les outils du quotidien
+# =====================================================================
+
+# Deux paquets ajoutés pour qu'Ansible lui-même marche bien :
+# - acl : permet à Ansible de passer de root à ton user sans planter
+#   (sinon erreur "Failed to set permissions on the temporary files")
+# - python3-psutil : obligatoire pour les réglages GNOME (module dconf)
+- name: "Paquets | Installer les outils"
+  ansible.builtin.apt:
+    name:
+      - acl
+      - python3-psutil
       - cargo
       - feh
       - gimp
       - git-all
       - golang
       - gparted
-      - gtk2-engines-murrine 
+      - gtk2-engines-murrine
       - gtk2-engines-pixbuf
       - htop
       - jq
@@ -25,44 +35,96 @@
       - tmux
       - vim
       - wireguard
+      # zulucrypt-gui est installé à part juste en dessous : il a été retiré de Debian en 2025
+      # et existe seulement sur certaines versions d'Ubuntu
+    state: present
+    update_cache: true
+
+# ---------------------------------------------------------------------
+# zuluCrypt : on l'installe seulement s'il existe dans les dépôts
+# ---------------------------------------------------------------------
+- name: "zuluCrypt | Le paquet existe ?"
+  ansible.builtin.command: apt-cache policy zulucrypt-gui
+  register: zulu_policy
+  changed_when: false
+
+- name: "zuluCrypt | Installer"
+  ansible.builtin.apt:
+    name:
+      - zulucrypt-cli
       - zulucrypt-gui
     state: present
+  when:
+    - "'Candidate:' in zulu_policy.stdout"
+    - "'(none)' not in zulu_policy.stdout"
 
-- name: set git buffer
-  ansible.builtin.shell: git config --global http.postBuffer 1048576000
+# La règle polkit d'origine laisse n'importe quel user lancer des trucs en root
+# sans mot de passe (faille CVE-2025-53391). On force la demande du mot de passe admin.
+- name: "zuluCrypt | Corriger la faille polkit"
+  ansible.builtin.replace:
+    path: /usr/share/polkit-1/actions/org.zulucrypt.zulupolkit.policy
+    regexp: '<(allow_any|allow_inactive|allow_active)>yes</\1>'
+    replace: '<\1>auth_admin</\1>'
+  when:
+    - "'Candidate:' in zulu_policy.stdout"
+    - "'(none)' not in zulu_policy.stdout"
+  failed_when: false
 
-- name: Create Terminator config directory if it doesn't exist
+- name: "zuluCrypt | Prévenir s'il est pas dispo"
+  ansible.builtin.debug:
+    msg: "zulucrypt-gui n'est pas dispo sur ce système, on passe. Utilise gnome-disk-utility ou cryptsetup à la place."
+  when: "'Candidate:' not in zulu_policy.stdout or '(none)' in zulu_policy.stdout"
+
+# ---------------------------------------------------------------------
+# Git : buffer plus gros pour cloner des gros dépôts sans erreur
+# Avant ça se faisait en root, donc ça réglait le git de root et pas le tien.
+# ---------------------------------------------------------------------
+- name: "Git | Augmenter le buffer"
   become_user: "{{ ansible_user }}"
-  file:
+  community.general.git_config:
+    name: http.postBuffer
+    scope: global
+    value: "1048576000"
+
+# ---------------------------------------------------------------------
+# Terminator (le terminal)
+# ---------------------------------------------------------------------
+- name: "Terminator | Créer le dossier de config"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.file:
     path: "/home/{{ ansible_user }}/.config/terminator/"
     state: directory
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
-    mode: 0755
+    mode: "0755"
 
-- name: Copy Terminator config
+- name: "Terminator | Copier ta config"
   become_user: "{{ ansible_user }}"
-  copy:
-   src: "./files/terminator_config"
-   dest: "/home/{{ ansible_user }}/.config/terminator/config"
-   owner: "{{ ansible_user }}"
-   group: "{{ ansible_user }}"
-   mode: 0644
+  ansible.builtin.copy:
+    src: ./files/terminator_config
+    dest: "/home/{{ ansible_user }}/.config/terminator/config"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
 
-- name: remove old OpenSSL directory
-  file:
-    state: absent
+# Petit bricolage hérité : on supprime l'ancienne lib OpenSSL de Python du système
+# parce qu'elle entrait en conflit avec des modules pip. Ça marche, mais apt
+# pense toujours que python3-openssl est installé. À enlever si ça pose problème un jour.
+- name: "Python | Supprimer l'ancien dossier OpenSSL"
+  ansible.builtin.file:
     path: /usr/lib/python3/dist-packages/OpenSSL
+    state: absent
 
-- name: Install - Python modules
+# Avant on passait "$HOME" à Ansible, mais il le remplace pas toujours par ton vrai dossier.
+# Là on donne directement le pip de Python 3.9.18 (installé par pyenv.yml).
+- name: "Python | Installer les modules Python"
   become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
-    name: 
+    name:
       - colorama
       - psutil
       - lxml
       - netaddr
       - pyopenssl
       - rfc5424-logging-handler
-    virtualenv: "$HOME/.pyenv/versions/3.9.18"
-    virtualenv_command: $HOME/.pyenv/bin/pyenv virtualenv 3.9.18
+    executable: "/home/{{ ansible_user }}/.pyenv/versions/3.9.18/bin/pip"

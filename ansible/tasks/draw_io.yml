@@ -1,10 +1,19 @@
-- name: "Draw.io | Run docker container"
+# =====================================================================
+# DRAW.IO : l'outil pour faire des schémas, lancé dans un conteneur Docker
+# Accès : http://127.0.0.1:6080  ou  https://127.0.0.1:6443
+# (docker.yml doit être passé avant)
+# =====================================================================
+
+# Avant y'avait "restart: true" : ça redémarrait le conteneur à chaque lancement du playbook.
+# Là on le lance juste s'il tourne pas, et Docker le relance tout seul au démarrage du PC.
+- name: "Draw.io | Lancer le conteneur"
   community.docker.docker_container:
     name: drawio
     image: jgraph/drawio:latest
     state: started
-    restart: true
-    restart_policy: "always"
+    restart_policy: always
+    # "127.0.0.1:" = accessible seulement depuis ton PC, pas depuis le réseau.
+    # Si tu veux l'ouvrir aux autres machines, enlève le "127.0.0.1:".
     ports:
-     - "6080:8080"
-     - "6443:8443"
+      - "127.0.0.1:6080:8080"
+      - "127.0.0.1:6443:8443"

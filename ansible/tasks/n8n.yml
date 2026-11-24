@@ -1,46 +1,81 @@
+# =====================================================================
+# N8N : outil d'automatisation (genre Zapier mais chez toi), dans Docker
+# Accès : http://127.0.0.1:5678
+# Le mot de passe admin est généré et rangé dans KeePassXC (entrée "n8n")
+# =====================================================================
 
-## N8N Installation
-- name: "N8N | Create Docker container"
+# Avant y'avait "recreate: true" et pas de volume : à chaque lancement du playbook,
+# n8n repartait de zéro et tu perdais tous tes workflows. Là les données
+# sont gardées dans un volume Docker.
+- name: "N8N | Créer le volume pour garder les données"
+  community.docker.docker_volume:
+    name: n8n_data
+
+- name: "N8N | Lancer le conteneur"
   community.docker.docker_container:
     name: n8n
     image: docker.n8n.io/n8nio/n8n
-    recreate: true
-    env: 
-        N8N_PORT: "5678"
-        N8N_PROTOCOL: "http"
-        NODE_ENV: "production"
-        WEBHOOK_URL: "http://127.0.0.1:5678/"
+    state: started
+    restart_policy: always
+    env:
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: "http"
+      NODE_ENV: "production"
+      WEBHOOK_URL: "http://127.0.0.1:5678/"
+    # "127.0.0.1:" = accessible seulement depuis ton PC
     ports:
-      - 5678:5678
+      - "127.0.0.1:5678:5678"
+    volumes:
+      - "n8n_data:/home/node/.n8n"
 
-## Then, wait server is up and running to kill it
-- name: "N8N | Wait server is up and running"
+- name: "N8N | Attendre que n8n réponde"
   ansible.builtin.uri:
     url: http://127.0.0.1:5678
-  register: result
-  until: "result.status == 200"
+  register: n8n_up
+  until: n8n_up.status == 200
   retries: 10
   delay: 60
 
-## N8N Configuration
-### Generate password
-- include_tasks: tasks/keepassXC_generate_password.yml
-
-### Add N8N entry in keepassXC
-- name: "N8N | Add Entry in keepassXC"
+# Est-ce que n8n a déjà été configuré ? On regarde si l'entrée existe dans KeePassXC.
+# Si oui, on refait rien (avant, au 2e lancement, l'ajout dans KeePass plantait
+# parce que l'entrée existait déjà).
+# Si t'avais déjà un n8n avant ces modifs, supprime l'entrée "n8n" dans KeePassXC
+# pour que le playbook refasse la config proprement.
+- name: "N8N | Déjà configuré ?"
   become_user: "{{ ansible_user }}"
-  shell: "printf \"%s\n%s\" {{ keepass_db_password }} {{ password }} | keepassxc-cli add --url 'http://127.0.0.1:5678/' -u '{{ ansible_user }}@localhost.com' -p {{ keepass_db_path }} n8n"
+  ansible.builtin.shell: >-
+    printf '%s\n' {{ keepass_db_password | quote }}
+    | keepassxc-cli show -q {{ keepass_db_path | quote }} n8n
   delegate_to: localhost
-  register: result
-  ignore_errors: False
+  register: n8n_keepass_entry
+  changed_when: false
+  failed_when: false
+  no_log: true
 
-### Set admin user
-- name: "N8N | Configure admin user password"
-  ansible.builtin.uri:
-    url: "http://127.0.0.1:5678/rest/owner/setup"
-    validate_certs: false
-    method: POST
-    return_content: true
-    body_format: json
-    body: '{"email":"{{ ansible_user }}@localhost.com", "firstName":"{{ ansible_user }}", "lastName":"{{ ansible_user }}", "password":"{{ password }}"}'
-    status_code: 200, 409
+- name: "N8N | Première configuration"
+  when: n8n_keepass_entry.rc != 0
+  block:
+    - name: "N8N | Générer un mot de passe"
+      ansible.builtin.include_tasks: tasks/keepassXC_generate_password.yml
+
+    - name: "N8N | Ranger le mot de passe dans KeePassXC"
+      become_user: "{{ ansible_user }}"
+      ansible.builtin.shell: >-
+        printf '%s\n%s\n' {{ keepass_db_password | quote }} {{ password | quote }}
+        | keepassxc-cli add --url 'http://127.0.0.1:5678/' -u '{{ ansible_user }}@localhost.com' -p {{ keepass_db_path | quote }} n8n
+      delegate_to: localhost
+      no_log: true
+
+    # On crée le compte admin de n8n avec ce mot de passe
+    - name: "N8N | Créer le compte admin"
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:5678/rest/owner/setup"
+        method: POST
+        body_format: json
+        body:
+          email: "{{ ansible_user }}@localhost.com"
+          firstName: "{{ ansible_user }}"
+          lastName: "{{ ansible_user }}"
+          password: "{{ password }}"
+        status_code: [200, 409]
+      no_log: true

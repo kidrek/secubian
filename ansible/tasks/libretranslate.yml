@@ -1,44 +1,69 @@
+# =====================================================================
+# LIBRETRANSLATE : un traducteur qui tourne en local (pas besoin de Google Traduction)
+# https://github.com/LibreTranslate/LibreTranslate
+# Accès : http://127.0.0.1:5000  (pyenv.yml doit être passé avant)
+# =====================================================================
 
-## LibreTranslate / https://github.com/LibreTranslate/LibreTranslate
-- name: "LibreTranslate | set PythonVersion"
+# Python 3.9 n'est plus mis à jour depuis octobre 2025. Ça marche encore,
+# mais un jour faudra passer à une version plus récente (genre 3.12).
+- name: "LibreTranslate | Choisir la version de Python"
   ansible.builtin.set_fact:
-    python_version : "3.9.18" 
+    python_version: "3.9.18"
 
-- name: "LibreTranslate | Install module"
+# Avant on passait "$HOME" à Ansible, mais il le remplace pas toujours par ton vrai dossier.
+# Là on donne directement le chemin complet du pip de pyenv.
+- name: "LibreTranslate | Installer LibreTranslate"
   become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
-    name: 
-      - libretranslate
-    virtualenv: "$HOME/.pyenv/versions/{{ python_version }}"
-    virtualenv_command: $HOME/.pyenv/bin/pyenv virtualenv {{ python_version }}
+    name: libretranslate
+    executable: "/home/{{ ansible_user }}/.pyenv/versions/{{ python_version }}/bin/pip"
 
-## Execute LibreTranslate in background to download all models
-# ref : https://cheat.readthedocs.io/en/latest/ansible/background.html
-- name: "LibreTranslate | update model"
-  become_user: "{{ ansible_user }}"
-  shell:
-    "/home/{{ ansible_user }}/.pyenv/versions/{{ python_version }}/bin/libretranslate" 
-  async: 36000 # Maximum allowed time in Seconds
-  poll: 0 # Polling Interval in Seconds
-  register: libretranslate_update
+# Avant on lançait LibreTranslate une 1re fois en arrière-plan pour télécharger les langues,
+# puis on lançait le service... mais le 1er tournait toujours et bloquait le port 5000.
+# Maintenant on lance juste le service : au premier démarrage il télécharge les langues tout seul.
+# Le service est écrit directement ici (avant c'était files/libretranslate/libretranslate.service,
+# qui pointait vers ".pyenv/shims/libretranslate" : ce chemin existe pas, le service plantait).
+- name: "LibreTranslate | Installer le service systemd"
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/libretranslate.service
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=LibreTranslate
+      # On attend le réseau (téléchargement des langues au 1er démarrage)
+      After=network-online.target
+      Wants=network-online.target
 
-## Then, wait server is up and running to kill it
-- name: "LibreTranslate | Wait server is up and running"
+      [Service]
+      # Tourne avec ton user, pas en root
+      User={{ ansible_user }}
+      Group={{ ansible_user }}
+      # Le vrai programme. 127.0.0.1 = accessible seulement depuis ton PC
+      ExecStart=/home/{{ ansible_user }}/.pyenv/versions/{{ python_version }}/bin/libretranslate --host 127.0.0.1 --port 5000
+      # Seulement anglais et français : beaucoup plus rapide à télécharger
+      Environment=LT_LOAD_ONLY=en,fr
+      # S'il plante, il redémarre au bout de 10 secondes
+      Restart=on-failure
+      RestartSec=10
+
+      [Install]
+      WantedBy=multi-user.target
+  register: libretranslate_service
+
+# "restarted" si le fichier du service vient de changer, sinon juste "started"
+- name: "LibreTranslate | Activer et démarrer le service"
+  ansible.builtin.systemd_service:
+    name: libretranslate
+    daemon_reload: true
+    enabled: true
+    state: "{{ 'restarted' if libretranslate_service.changed else 'started' }}"
+
+# Le 1er démarrage peut être long (téléchargement de toutes les langues).
+# On vérifie toutes les 2 minutes, pendant 1h max.
+- name: "LibreTranslate | Attendre que ça réponde"
   ansible.builtin.uri:
     url: http://127.0.0.1:5000
-  register: result
-  until: "result.status == 200"
-  retries: 20
+  register: libretranslate_up
+  until: libretranslate_up.status == 200
+  retries: 30
   delay: 120
-
-- name: "LibreTranslate | set service configuration"
-  ansible.builtin.template:
-    src  : "../files/libretranslate/libretranslate.service"
-    dest : "/etc/systemd/system/libretranslate.service"
-    mode: 0640
-
-- name: "LibreTranslate | Enable service"
-  ansible.builtin.systemd:
-    name: libretranslate
-    state: started
-    enabled: true

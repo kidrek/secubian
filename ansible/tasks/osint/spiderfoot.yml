@@ -1,25 +1,76 @@
+# =====================================================================
+# SPIDERFOOT : outil d'OSINT qui collecte tout ce qu'on trouve sur une cible
+# (domaine, IP, mail, pseudo...) depuis des centaines de sources.
+# Accès : http://127.0.0.1:5001
+#
+# Le SpiderFoot d'origine est plus maintenu depuis 2023 et l'image Docker
+# "josaorg/spiderfoot" a disparu (erreur 404). On utilise "spiderfoot-ng",
+# un fork qui le maintient à jour, installé dans son propre environnement
+# Python (~/.venvs/spiderfoot) et lancé comme un service.
+# =====================================================================
 
+- name: "Spiderfoot | Chemins utiles"
+  ansible.builtin.set_fact:
+    spiderfoot_venv: "/home/{{ ansible_user }}/.venvs/spiderfoot"
 
-- name: "Spiderfoot | Create date directory"
-  become_user: "{{ ansible_user }}"
-  file:
-    path: "{{OSINT_toolsDir}}/spiderfoot"
-    state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: 0775
-
-
-- name: "Spiderfoot | Run docker container"
+# On supprime l'ancien conteneur Docker s'il traîne encore
+- name: "Spiderfoot | Supprimer l'ancien conteneur Docker"
   community.docker.docker_container:
     name: spiderfoot
-    image: josaorg/spiderfoot
-    recreate: true
-    state: started
-    restart: true
-    restart_policy: "always"
-    privileged: false
-    published_ports:
-      - "127.0.0.1:5001:5001"
-    volumes:
-      - "{{OSINT_toolsDir}}/spiderfoot:/var/lib/spiderfoot"
+    state: absent
+
+- name: "Spiderfoot | Installer les prérequis"
+  ansible.builtin.apt:
+    name:
+      - python3
+      - python3-venv
+    state: present
+
+# Le module pip crée l'environnement tout seul s'il existe pas
+- name: "Spiderfoot | Installer spiderfoot-ng"
+  become_user: "{{ ansible_user }}"
+  ansible.builtin.pip:
+    name: spiderfoot-ng
+    state: latest
+    virtualenv: "{{ spiderfoot_venv }}"
+    virtualenv_command: python3 -m venv
+  register: spiderfoot_pip
+
+# Le service : SpiderFoot tourne avec ton user, accessible seulement depuis ton PC
+- name: "Spiderfoot | Installer le service systemd"
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/spiderfoot.service
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=SpiderFoot (OSINT)
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      User={{ ansible_user }}
+      Group={{ ansible_user }}
+      # 127.0.0.1 = accessible seulement depuis ton PC
+      ExecStart={{ spiderfoot_venv }}/bin/spiderfoot-ng -l 127.0.0.1:5001
+      Restart=on-failure
+      RestartSec=10
+
+      [Install]
+      WantedBy=multi-user.target
+  register: spiderfoot_service
+
+# On redémarre si le service ou SpiderFoot viennent de changer
+- name: "Spiderfoot | Activer et démarrer le service"
+  ansible.builtin.systemd_service:
+    name: spiderfoot
+    daemon_reload: true
+    enabled: true
+    state: "{{ 'restarted' if (spiderfoot_service.changed or spiderfoot_pip.changed) else 'started' }}"
+
+- name: "Spiderfoot | Attendre que ça réponde"
+  ansible.builtin.uri:
+    url: http://127.0.0.1:5001
+  register: spiderfoot_up
+  until: spiderfoot_up.status == 200
+  retries: 10
+  delay: 10

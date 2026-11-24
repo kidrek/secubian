@@ -1,37 +1,46 @@
-- name: "CIRCL-Hashlookup | set PythonVersion"
+# =====================================================================
+# CIRCL HASHLOOKUP : vérifie si des fichiers sont "connus et légitimes"
+# (fichiers Windows officiels, etc.) grâce à une énorme base de hash.
+# Ça permet d'écarter tout ce qui est normal et de se concentrer sur le reste.
+# =====================================================================
+
+- name: "CIRCL-Hashlookup | Choisir la version de Python"
   ansible.builtin.set_fact:
-    python_version : "3.9.18" 
+    python_version: "3.9.18"
 
-- name: "CIRCL-Hashlookup | Clone git repos"
+- name: "CIRCL-Hashlookup | Télécharger l'outil"
   become_user: "{{ ansible_user }}"
-  git:
-    repo: "{{ item.repo }}"
-    dest: "{{ item.dest }}"
-    accept_hostkey: yes
-    force: yes
-    recursive: yes
-  with_items:
-    - { repo: "https://github.com/hashlookup/hashlookup-forensic-analyser.git", dest: "{{ DFIR_toolsDir }}/analyse/tools/windows_binary/CIRCL-Hashlookup" }
+  ansible.builtin.git:
+    repo: https://github.com/hashlookup/hashlookup-forensic-analyser.git
+    dest: "{{ DFIR_toolsDir }}/analyse/tools/windows_binary/CIRCL-Hashlookup"
+    accept_hostkey: true
+    force: true
+    recursive: true
 
-- name: "CIRCL-Hashlookup | Python modules requirement"
+# Avant on passait "$HOME" à Ansible, mais il le remplace pas toujours par ton vrai dossier.
+# Là on donne directement le pip de pyenv.
+- name: "CIRCL-Hashlookup | Installer les modules Python"
   become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
     requirements: "{{ DFIR_toolsDir }}/analyse/tools/windows_binary/CIRCL-Hashlookup/REQUIREMENTS"
-    virtualenv: "$HOME/.pyenv/versions/{{ python_version }}"
-    virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv {{ python_version }}"
+    executable: "/home/{{ ansible_user }}/.pyenv/versions/{{ python_version }}/bin/pip"
 
-- name: "CIRCL-Hashlookup | Hash database download"
+# La base est grosse : on laisse 30 minutes au lieu de 4 (avant ça coupait souvent).
+# Si le fichier est déjà là, get_url le retélécharge pas.
+- name: "CIRCL-Hashlookup | Télécharger la base de hash"
   become_user: "{{ ansible_user }}"
   ansible.builtin.get_url:
     url: https://cra.circl.lu/hashlookup/hashlookup-full.bloom
     dest: "{{ DFIR_toolsDir }}/analyse/tools/windows_binary/CIRCL-Hashlookup/hashlookup-full.bloom"
-    timeout: 240
+    timeout: 1800
+    mode: "0644"
 
-- name: "CIRCL-Hashlookup | Add BASH aliases"
+# Raccourci : tape "hashlookupByCIRCL" pour lancer l'analyse
+- name: "CIRCL-Hashlookup | Ajouter l'alias"
   become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "~/.aliases"
-    create: yes
-    mode: 0644
-    line: 'alias hashlookupByCIRCL="$HOME/.pyenv/versions/{{ python_version }}/bin/python {{ DFIR_toolsDir }}/analyse/tools/windows_binary/CIRCL-Hashlookup/bin/hashlookup-analyser.py --bloomfilters {{ DFIR_toolsDir }}/analyse/tools/windows_binary/CIRCL-Hashlookup/hashlookup-full.bloom --include-stats "'
+  ansible.builtin.lineinfile:
+    path: "/home/{{ ansible_user }}/.aliases"
+    create: true
+    mode: "0644"
+    line: 'alias hashlookupByCIRCL="/home/{{ ansible_user }}/.pyenv/versions/{{ python_version }}/bin/python {{ DFIR_toolsDir }}/analyse/tools/windows_binary/CIRCL-Hashlookup/bin/hashlookup-analyser.py --bloomfilters {{ DFIR_toolsDir }}/analyse/tools/windows_binary/CIRCL-Hashlookup/hashlookup-full.bloom --include-stats"'
     regexp: "^alias hashlookupByCIRCL="

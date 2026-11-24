@@ -1,48 +1,78 @@
-# Bulk_extractor
+# =====================================================================
+# BULK EXTRACTOR : fouille une image disque et sort tout ce qui traîne
+# (mails, URLs, numéros de carte, etc.). On le compile nous-mêmes.
+# =====================================================================
 
-- name: "Bulk Extractor | Install requirements"
-  apt:
-    name: 
-      - autoconf 
+- name: "Bulk Extractor | Installer les outils pour compiler"
+  ansible.builtin.apt:
+    name:
+      - autoconf
       - automake
       - flex
-      - gcc 
-      - g++ 
-      - git 
-        #      - openjdk-11-jdk 
-      - libewf-dev 
+      - gcc
+      - g++
+      - git
+      - libewf-dev
       - libjson-c-dev
       - libre2-dev
-      - libssl-dev 
-      - libxml2-dev 
+      - libssl-dev
+      - libxml2-dev
       - libtool
-      - make 
+      - make
+      - pkg-config
       - zlib1g-dev
-      - wget 
+      - wget
     state: present
 
-- name: "Bulk Extractor | Clone git repos"
-  become_user: "{{ ansible_user }}"
-  git:
-    repo: "{{ item.repo }}"
-    dest: "{{ item.dest }}"
-    force: yes
-  with_items:
-    - { repo: "https://github.com/simsong/bulk_extractor.git", dest: "{{ DFIR_toolsDir }}/data_processing/bulk_extractor" }
+# Compiler c'est long : on le fait seulement si bulk_extractor est pas déjà installé.
+# Pour forcer une recompilation : sudo rm /usr/local/bin/bulk_extractor
+- name: "Bulk Extractor | Déjà installé ?"
+  ansible.builtin.stat:
+    path: /usr/local/bin/bulk_extractor
+  register: bulk_extractor_bin
 
-- name: "Bulk Extractor | Disable usage of restart function"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.replace:
-    path: "{{ DFIR_toolsDir }}/data_processing/bulk_extractor/{{ item.filepath }}"
-    regexp: "{{ item.Oldline }}"
-    replace: "{{ item.Newline }}"
-  with_items:
-    - { filepath: "src/bulk_extractor.cpp", Oldline: "r\\.restart\\(\\)", Newline: "//r.restart();"}
-    - { filepath: "src/test_be3.cpp", Oldline: "r\\.restart\\(\\)", Newline: "//r.restart();"}
+# Pas installé = on repart d'un dossier tout propre.
+# Sinon il reste des morceaux d'une compilation ratée d'avant
+# (erreur "undefined reference to scan_base16").
+- name: "Bulk Extractor | Supprimer l'ancien dossier de compilation"
+  ansible.builtin.file:
+    path: "{{ DFIR_toolsDir }}/data_processing/bulk_extractor"
+    state: absent
+  when: not bulk_extractor_bin.stat.exists
 
-- name: "Bulk Extractor | Setup specific libraries"
+# "recursive" = on prend aussi les sous-modules (sinon il manque des morceaux)
+- name: "Bulk Extractor | Télécharger le code"
   become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: "{{ item.cmdline }}"
-  with_items:
-    - { cmdline: "cd {{ DFIR_toolsDir }}/data_processing/bulk_extractor; sudo chmod +x bootstrap.sh; sudo ./bootstrap.sh;" }  
-    - { cmdline: "cd {{ DFIR_toolsDir }}/data_processing/bulk_extractor; sudo ./configure; sudo make; sudo make install;" }  
+  ansible.builtin.git:
+    repo: https://github.com/simsong/bulk_extractor.git
+    dest: "{{ DFIR_toolsDir }}/data_processing/bulk_extractor"
+    recursive: true
+    force: true
+
+# On compile avec ton user, seule l'installation finale se fait en root
+- name: "Bulk Extractor | Compiler"
+  when: not bulk_extractor_bin.stat.exists
+  block:
+    - name: "Bulk Extractor | Préparer (bootstrap)"
+      become_user: "{{ ansible_user }}"
+      ansible.builtin.command: sh ./bootstrap.sh
+      args:
+        chdir: "{{ DFIR_toolsDir }}/data_processing/bulk_extractor"
+
+    - name: "Bulk Extractor | Configurer"
+      become_user: "{{ ansible_user }}"
+      ansible.builtin.command: ./configure
+      args:
+        chdir: "{{ DFIR_toolsDir }}/data_processing/bulk_extractor"
+
+    # -j = on utilise tous les cœurs du processeur, ça va plus vite
+    - name: "Bulk Extractor | Compiler (make)"
+      become_user: "{{ ansible_user }}"
+      ansible.builtin.command: "make -j{{ ansible_facts['processor_vcpus'] | default(2) }}"
+      args:
+        chdir: "{{ DFIR_toolsDir }}/data_processing/bulk_extractor"
+
+    - name: "Bulk Extractor | Installer (make install)"
+      ansible.builtin.command: make install
+      args:
+        chdir: "{{ DFIR_toolsDir }}/data_processing/bulk_extractor"

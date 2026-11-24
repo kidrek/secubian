@@ -1,31 +1,41 @@
+# =====================================================================
+# LOG2TIMELINE / PLASO : crée une timeline géante de tout ce qui s'est passé
+# sur une machine (fichiers, logs, navigateur...). Lancé via Docker.
+# =====================================================================
 
-- name: "Log2timeline | Add aliases"
+# Deux raccourcis : "dockerl2t" pour créer la timeline, "dockerplaso" pour l'exporter.
+# Ils travaillent sur le dossier où t'es ($(pwd)).
+- name: "Log2timeline | Ajouter les alias"
   become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "~/.aliases"
-    create: yes
-    mode: 0644
+  ansible.builtin.lineinfile:
+    path: "/home/{{ ansible_user }}/.aliases"
+    create: true
+    mode: "0644"
     line: "alias {{ item.alias }}='{{ item.commandLine }}'"
     regexp: "^alias {{ item.alias }}="
-  with_items:
-    - { alias: "dockerplaso", commandLine: "sudo docker run --rm -v $(pwd):/data -w /data log2timeline/plaso psort"}
-    - { alias: "dockerl2t", commandLine: "sudo docker run --rm -v $(pwd):/data -w /data log2timeline/plaso log2timeline"}
+  loop:
+    - { alias: "dockerplaso", commandLine: "sudo docker run --rm -v $(pwd):/data -w /data log2timeline/plaso psort" }
+    - { alias: "dockerl2t", commandLine: "sudo docker run --rm -v $(pwd):/data -w /data log2timeline/plaso log2timeline" }
 
-- name: "Log2timeline | Docker build"
-  ansible.builtin.shell: docker pull {{ item.docker }};
-  with_items:
-    - { docker: "log2timeline/plaso" }
+# Le module docker_image fait le "docker pull" proprement (avant c'était un shell)
+- name: "Log2timeline | Télécharger l'image Docker"
+  community.docker.docker_image:
+    name: log2timeline/plaso
+    source: pull
 
-- name: "Log2timeline | create directory if they don't exist"
-  file:
+- name: "Log2timeline | Créer le dossier"
+  ansible.builtin.file:
     path: "{{ DFIR_toolsDir }}/data_processing/log2timeline/"
     state: directory
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
-    mode: 0775
+    mode: "0775"
 
-- name: "Log2timeline | Download windows filter"
+# Un filtre pour ne garder que les fichiers Windows intéressants (ça va beaucoup plus vite)
+- name: "Log2timeline | Télécharger le filtre Windows"
   ansible.builtin.get_url:
     url: https://raw.githubusercontent.com/mark-hallman/plaso_filters/44f880b1585b1ca369aa132de3a89ee60e0522ea/filter_windows.txt
     dest: "{{ DFIR_toolsDir }}/data_processing/log2timeline/filter_windows.txt"
-    mode: '0440'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0440"

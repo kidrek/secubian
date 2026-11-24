@@ -1,41 +1,48 @@
-- name: "Blackbird | set PythonVersion"
+# =====================================================================
+# BLACKBIRD : cherche un pseudo ou un mail sur des centaines de sites
+# (réseaux sociaux, forums...) pour voir où la personne a un compte.
+#
+# Avant, le playbook restait bloqué ici pour toujours : "pyenv install 3.9.18"
+# demandait "déjà installé, on continue ? (y/N)" et attendait une réponse.
+# Maintenant Blackbird a son propre environnement Python (~/.venvs/blackbird)
+# avec le Python d'Ubuntu, plus besoin de pyenv.
+# =====================================================================
+
+- name: "Blackbird | Chemins utiles"
   ansible.builtin.set_fact:
-    python_version : "3.9.18" 
+    blackbird_dir: "{{ OSINT_toolsDir }}/blackbird"
+    blackbird_venv: "/home/{{ ansible_user }}/.venvs/blackbird"
 
-- name: "Blackbird | Clone git repos"
+- name: "Blackbird | Installer les prérequis"
+  ansible.builtin.apt:
+    name:
+      - python3
+      - python3-venv
+    state: present
+
+- name: "Blackbird | Télécharger Blackbird"
   become_user: "{{ ansible_user }}"
-  git:
-    repo: "{{ item.repo }}"
-    dest: "{{ item.dest }}"
-    accept_hostkey: yes
-    force: yes
-    recursive: yes
-  with_items:
-    - { repo: "https://github.com/p1ngul1n0/blackbird", dest: "{{ OSINT_toolsDir }}/blackbird" }
+  ansible.builtin.git:
+    repo: https://github.com/p1ngul1n0/blackbird
+    dest: "{{ blackbird_dir }}"
+    accept_hostkey: true
+    force: true
 
-- name: "Blackbird | Install python {{ python_version }}"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: ". $HOME/.env && $HOME/.pyenv/bin/pyenv install {{ python_version }}"
-  ignore_errors: true
-
-- name: "Blackbird | Set python version"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: "cd {{ OSINT_toolsDir }}/blackbird; $HOME/.pyenv/bin/pyenv local {{ python_version }}"
-
-- name: "Blackbird | Requirements tools installation"
+# Le module pip crée l'environnement tout seul s'il existe pas
+- name: "Blackbird | Installer les modules Python"
   become_user: "{{ ansible_user }}"
   ansible.builtin.pip:
-    requirements: "{{ OSINT_toolsDir }}/blackbird/requirements.txt"
-    virtualenv: "$HOME/.pyenv/versions/{{ python_version }}"
-    virtualenv_command: "$HOME/.pyenv/bin/pyenv virtualenv {{ python_version }}"
+    requirements: "{{ blackbird_dir }}/requirements.txt"
+    virtualenv: "{{ blackbird_venv }}"
+    virtualenv_command: python3 -m venv
 
-- name: "Blackbird | Add alias"
+# Raccourci : tape "blackbird.py -u pseudo" pour chercher un pseudo.
+# On va dans son dossier d'abord, Blackbird y range ses listes de sites et ses résultats.
+- name: "Blackbird | Ajouter l'alias"
   become_user: "{{ ansible_user }}"
-  lineinfile:
-    dest: "~/.aliases"
-    create: yes
-    mode: 0644
-    line: "alias {{ item.alias }}='{{ item.commandLine }}'"
-    regexp: "^alias {{ item.alias }}="
-  with_items:
-    - { alias: "blackbird.py", commandLine: "cd {{ OSINT_toolsDir }}/blackbird; $HOME/.pyenv/versions/{{ python_version }}/bin/python {{ OSINT_toolsDir }}/blackbird/blackbird.py" }
+  ansible.builtin.lineinfile:
+    path: "/home/{{ ansible_user }}/.aliases"
+    create: true
+    mode: "0644"
+    line: "alias blackbird.py='cd {{ blackbird_dir }} && {{ blackbird_venv }}/bin/python blackbird.py'"
+    regexp: "^alias blackbird.py="

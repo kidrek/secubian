@@ -1,84 +1,81 @@
-#- name: "Glance | Copy preferences"
-#  become_user: "{{ ansible_user }}"
-#  ansible.builtin.copy: 
-#    src  : ../files/glance/
-#    dest : "/home/{{ ansible_user }}/.glance/"
+# =====================================================================
+# GLANCE : un petit dashboard (page d'accueil perso)
+# Il tourne comme un service système, avec son propre user "service_glance"
+# =====================================================================
 
-#- name: "Glance | Run docker container"
-#  community.docker.docker_container:
-#    name: glance
-#    image: glanceapp/glance
-#    state: started
-#    restart: true
-#    restart_policy: "always"
-#    volumes:
-#      - "/home/{{ ansible_user }}/.glance/config:/app/config"
-#      - "/home/{{ ansible_user }}/.glance/assets:/app/assets"
-#    ports:
-#     - "8080:8080"
+# Glance range ses téléchargements par architecture (amd64 / arm64)
+- name: "Glance | Trouver l'architecture du PC"
+  ansible.builtin.set_fact:
+    deb_arch: "{{ arch | default('arm64' if ansible_architecture == 'aarch64' else 'amd64') }}"
 
-- name: "Glance | Create service user"
+# Un user rien que pour Glance, qui peut pas se connecter (nologin).
+# Si Glance se fait pirater, l'attaquant est coincé dans ce user-là.
+- name: "Glance | Créer le user du service"
   ansible.builtin.user:
-    name: "service_glance"
-    create_home: yes
-    home: "/etc/glance"
+    name: service_glance
+    system: true
+    shell: /usr/sbin/nologin
+    home: /etc/glance
+    create_home: false
 
-- name: "Glance | Create binary directory"
-  file:
-    path: "/opt/glance/"
+# Avant beaucoup de tâches faisaient "become_user: service_glance".
+# Passer de root à un autre user que le tien fait souvent planter Ansible
+# ("Failed to set permissions on the temporary files"). Donc on fait tout en root
+# et on donne juste les fichiers à service_glance à la fin.
+- name: "Glance | Créer les dossiers"
+  ansible.builtin.file:
+    path: "{{ item }}"
     state: directory
-    owner: "service_glance"
-    mode: 0700
+    owner: service_glance
+    group: service_glance
+    mode: "0750"
+  loop:
+    - /opt/glance
+    - /etc/glance
 
-- name: "Glance | Get latest version of Glance release"
-  become_user: service_glance
-  uri:
+# On demande à GitHub la dernière version
+- name: "Glance | Chercher la dernière version sur GitHub"
+  ansible.builtin.uri:
     url: "https://api.github.com/repos/glanceapp/glance/releases/latest"
-    return_content: yes
-  register: url_content
+    return_content: true
+  register: glance_release
 
-- name: "Glance | Set latest version variable"
-  become_user: service_glance
-  set_fact:
-    glance_version: "{{ url_content.json.name }}"
-
-- name: "Glance | Download the latest version"
-  become_user: service_glance
-  get_url:
-    url: "https://github.com/glanceapp/glance/releases/download/{{ glance_version }}/glance-linux-{{ arch }}.tar.gz"
+# On prend "tag_name" (ex : v0.8.4) plutôt que "name", c'est lui qui est dans l'URL de téléchargement
+- name: "Glance | Télécharger la dernière version"
+  ansible.builtin.get_url:
+    url: "https://github.com/glanceapp/glance/releases/download/{{ glance_release.json.tag_name }}/glance-linux-{{ deb_arch }}.tar.gz"
     dest: /opt/glance/glance-linux.tar.gz
+    mode: "0640"
 
-- name: "Glance | Extract archive"
-  become_user: "service_glance"
-  ansible.builtin.shell: "cd /opt/glance/; tar xvzf /opt/glance/glance-linux.tar.gz"
-  ignore_errors: true
+# "unarchive" c'est le tar de Ansible : plus propre que de passer par le shell
+- name: "Glance | Décompresser"
+  ansible.builtin.unarchive:
+    src: /opt/glance/glance-linux.tar.gz
+    dest: /opt/glance/
+    remote_src: true
+    owner: service_glance
+    group: service_glance
 
-- name: "Glance | Create configuration directory"
-  become_user: service_glance
-  file:
-    path: "/etc/glance/"
-    state: directory
-    owner: "service_glance"
-    mode: 0700
+- name: "Glance | Copier la config"
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /etc/glance/
+    owner: service_glance
+    group: service_glance
+  loop:
+    - ../files/glance/config
+    - ../files/glance/assets
 
-- name: "Glance | Copy configuration"
-  become_user: service_glance
-  ansible.builtin.copy: 
-    src  : "{{ item.path }}"
-    dest : "/etc/glance/"
-  with_items:
-    - { path: "../files/glance/config" }
-    - { path: "../files/glance/assets" }
+- name: "Glance | Installer le service systemd"
+  ansible.builtin.copy:
+    src: ../files/glance/glance.service
+    dest: /etc/systemd/system/glance.service
+    mode: "0644"
 
-- name: "Glance | Create systemd service"
-  ansible.builtin.copy: 
-    src  : ../files/glance/glance.service
-    dest : /etc/systemd/system/
-
-- name: "Glance | Enable service"
-  become_user: "{{ ansible_user }}"
-  ansible.builtin.shell: "{{ item.commandLine }}"
-  with_items:
-    - { commandLine: "sudo systemctl daemon-reload" }
-    - { commandLine: "sudo systemctl enable glance.service" }
-  ignore_errors: true
+# Le module systemd fait le daemon-reload + enable + start d'un coup, sans "sudo" dans un shell
+- name: "Glance | Activer et démarrer le service"
+  ansible.builtin.systemd_service:
+    name: glance
+    daemon_reload: true
+    enabled: true
+    state: started

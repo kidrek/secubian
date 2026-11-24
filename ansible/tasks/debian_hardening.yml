@@ -1,13 +1,39 @@
+# =====================================================================
+# DURCISSEMENT : on coupe les services qui servent à rien sur un poste
+# d'analyse (imprimante, partage réseau, serveur mail, accès SSH).
+# Moins de services qui tournent = moins de portes d'entrée pour un attaquant.
+# =====================================================================
 
-- name : "Debian - Disable required services"
-  ansible.builtin.service:
-    name: "{{ item.name }}"
-    state: stopped
-    enabled: false
-  ignore_errors: true
-  with_items:
-    - { name: "avahi-daemon" }
-    - { name: "cups" }
-    - { name: "cups-browsed" }
-    - { name: "exim4" }
-    - { name: "ssh" }
+# Les services à couper (marche sur Ubuntu et Debian)
+- name: "Hardening | Liste des services à couper"
+  ansible.builtin.set_fact:
+    hardening_services:
+      - avahi-daemon   # annonce ta machine sur le réseau local, non merci
+      - cups           # le service d'impression
+      - cups-browsed   # cherche des imprimantes sur le réseau tout seul
+      - exim4          # serveur mail (Debian seulement)
+      - ssh            # accès à distance : si t'en as besoin, enlève cette ligne
+
+# On liste tout ce que systemd connaît (services, sockets, paths).
+# Un service peut se relancer tout seul via son "socket" ou son "path",
+# donc il faut couper les trois.
+- name: "Hardening | Lister ce qui existe sur la machine"
+  ansible.builtin.command: systemctl list-unit-files --type=service,socket,path --no-legend --plain
+  register: hardening_units
+  changed_when: false
+
+# On garde juste les noms exacts (1re colonne)
+- name: "Hardening | Garder les noms exacts"
+  ansible.builtin.set_fact:
+    hardening_existing: "{{ hardening_units.stdout_lines | select | map('split') | map('first') | list }}"
+
+# On coupe le service ET son socket ET son path EN MÊME TEMPS
+# (sinon systemd annule). "disable --now" = arrêt maintenant + plus au boot.
+- name: "Hardening | Couper les services inutiles"
+  ansible.builtin.command: "systemctl disable --now {{ units | join(' ') }}"
+  vars:
+    units: "{{ [item ~ '.socket', item ~ '.path', item ~ '.service'] | select('in', hardening_existing) | list }}"
+  loop: "{{ hardening_services }}"
+  when: units | length > 0
+  register: hardening_disable
+  changed_when: "'Removed' in (hardening_disable.stdout ~ hardening_disable.stderr)"
